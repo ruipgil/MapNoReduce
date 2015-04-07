@@ -2,14 +2,40 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 using System.Threading.Tasks;
+using System.Runtime.Remoting.Channels;
+using System.Runtime.Remoting.Channels.Tcp;
+using System.Runtime.Remoting.Messaging;
 
-namespace MapNoReduce
+namespace PADIMapNoReduce
 {
-    public class Client : MarshalByRefObject, IClient
+    public class Client : MarshalByRefObject, IClientService
     {
         Dictionary<string, string> originalKeyVal = new Dictionary<string, string>();
         Dictionary<string, string> processedKeyVal = new Dictionary<string, string>();
+
+        TcpChannel channel;
+        IWorkerService knownWorker;
+
+
+        public Client()
+        {
+        }
+
+        public void init(string entryUrl)
+        {
+            channel = new TcpChannel();
+            ChannelServices.RegisterChannel(channel, true);
+            knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), entryUrl);
+        }
+
+        public void submit(string inputFile, int splits) // incomplete
+        {
+            int lines = File.ReadLines(@"C:\file.txt").Count();
+            knownWorker.submit(lines, splits);
+        }
+
 
         public List<string> getKeys(int start, int end)
         {

@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MapNoReduce
+namespace PADIMapNoReduce
 {
-    public interface IWorker
+    public interface IInnerWorker
     {
-        public void process();
+        void work(int start, int end, string clientUrl);
     }
 }

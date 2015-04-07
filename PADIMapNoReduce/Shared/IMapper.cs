@@ -4,13 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PADIMapNoReduce
+namespace Shared
 {
-    class Program
+    public interface IMapper
     {
-        static void Main(string[] args)
-        {
-            
-        }
+        IList<KeyValuePair<string, string>> Map(string fileLine);
     }
 }
