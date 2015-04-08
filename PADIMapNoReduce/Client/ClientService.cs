@@ -10,7 +10,7 @@ using System.Runtime.Remoting.Messaging;
 
 namespace PADIMapNoReduce
 {
-    public class Client : MarshalByRefObject, IClientService
+    public class ClientService : MarshalByRefObject, IClientService
     {
         Dictionary<string, string> originalKeyVal = new Dictionary<string, string>();
         Dictionary<string, string> processedKeyVal = new Dictionary<string, string>();
@@ -18,60 +18,26 @@ namespace PADIMapNoReduce
         TcpChannel channel;
         IWorkerService knownWorker;
 
+        List<string> file;
+        int lines;
 
-        public Client()
-        {
-        }
-
-        public void init(string entryUrl)
+        public ClientService(string workerEntryUrl)
         {
             channel = new TcpChannel();
             ChannelServices.RegisterChannel(channel, true);
-            knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), entryUrl);
+            knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
         }
 
         public void submit(string inputFile, int splits) // incomplete
         {
-            int lines = File.ReadLines(@"C:\file.txt").Count();
+            file = new List<string>(File.ReadAllLines(inputFile));
+            lines = file.Count();
             knownWorker.submit(lines, splits);
         }
 
-
-        public List<string> getKeys(int start, int end)
+        public List<string> get(int start, int end)
         {
-            // TODO: exception if end > originalKeyVal.Keys.length
-            return new List<string>(originalKeyVal.Keys).GetRange(start, end);
-        }
-
-        public Dictionary<string, string> getValues(int start, int end)
-        {
-            return new Dictionary<string, string>(originalKeyVal);
-        }
-
-        public string getValue(string key)
-        {
-            return originalKeyVal[key];
-        }
-
-        // asks the client for the values of keys
-        public Dictionary<string, string> getValues(List<string> keys)
-        {
-            return originalKeyVal.Where(x => keys.Contains(x.Key)).ToDictionary(x => x.Key, x => x.Value);
-        }
-
-        // sets the processing result of keys
-        public void setResult(Dictionary<string, string> keyValProcessed)
-        {
-            foreach (KeyValuePair<string, string> entry in keyValProcessed)
-            {
-                processedKeyVal.Add(entry.Key, entry.Value);
-            }
-        }
-
-        // unlock lock
-        public void jobHasCompleted()
-        {
-            return;
+            return file.GetRange(start, end - start);
         }
     }
 }

@@ -8,11 +8,10 @@ namespace PADIMapNoReduce
 {
     public class WorkerService : MarshalByRefObject, IWorkerService
     {
-
         public void submit(int inputSize, int splits)
         {
             List<Tuple<int, int>> s = split(inputSize, splits);
-            List<string> workers = getAvaiableWorkers();
+            List<IInnerWorker> workers = getAvaiableWorkers();
             string clientUrl = "";
 
             distributeWorkToWorkers(s, workers, clientUrl);
@@ -39,22 +38,23 @@ namespace PADIMapNoReduce
             return result;
         }
 
-        private List<string> getAvaiableWorkers() {
-            return new List<string>();
+        private List<IInnerWorker> getAvaiableWorkers()
+        {
+            return new List<IInnerWorker>();
         }
 
         // missing mapper
-        private void distributeWorkToWorkers(List<Tuple<int, int>> splits, List<string> workers, string clientUrl)
+        private void distributeWorkToWorkers(List<Tuple<int, int>> splits, List<IInnerWorker> workers, string clientUrl)
         {
             // key is the index of 'List<int> splits' and value is the worker responsible for the job
-            Dictionary<int, string> splitsToWorker = new Dictionary<int, string>();
+            Dictionary<int, IInnerWorker> splitsToWorker = new Dictionary<int, IInnerWorker>();
             int workersCount = workers.Count();
             for (int i = 0; i < splits.Count(); i++)
             {
-                /*Worker worker = workers[i % workersCount];
+                IInnerWorker worker = workers[i % workersCount];
                 splitsToWorker.Add(i, worker);
                 Tuple<int, int> split = splits[i];
-                worker.work(split.Item1, split.Item2, clientUrl); // missing mapper*/
+                worker.work(split.Item1, split.Item2, i, clientUrl); // missing mapper
             }
         }
     }

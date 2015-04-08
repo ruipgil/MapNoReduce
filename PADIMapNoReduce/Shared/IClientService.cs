@@ -9,13 +9,19 @@ namespace PADIMapNoReduce
     // Interface for the worker to communicate with the client
     public interface IClientService
     {
-        List<string> getKeys(int start, int end);
-        Dictionary<string, string> getValues(int start, int end);
-        // asks the client for the values of keys
-        Dictionary<string, string> getValues(List<string> keys);
+        /// <summary>
+        /// Gets a list of values from key start to key end-1
+        /// </summary>
+        /// <param name="start">First key index</param>
+        /// <param name="end">Last key index, minus one</param>
+        /// <returns>A list where the first element corresponds to the key with index==start</returns>
+        List<string> get(int start, int end);
         // sets the processing result of keys
-        void setResult(Dictionary<string, string> keyValProcessed);
-        // all key/values have been processed
-        void jobHasCompleted();
+        /// <summary>
+        /// Sets the result of the mapping of a split
+        /// </summary>
+        /// <param name="split">The split index</param>
+        /// <param name="result">List with results of the mapping</param>
+        void set(int split, List<IList<KeyValuePair<string, string>>> results);
     }
 }
