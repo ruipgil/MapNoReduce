@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace PADIMapNoReduce
 {
-    // This is the interface for the client to communicate with the worker,
-    // mainly to request processing to a worker
+    /// <summary>
+    /// Worker interface visible to the client
+    /// </summary>
     public interface IWorkerService
     {
         void submit(int inputSize, int splits);

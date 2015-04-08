@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace PADIMapNoReduce
 {
-    public interface IInnerWorker
+    /// <summary>
+    /// Worker interface visible to other workers
+    /// </summary>
+    public interface IWorkingWorkerService : IWorkerService
     {
         /// <summary>
         /// Asks client for the values. Process them with the mapper and maps them with the mapper.

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Messaging;
+using System.Runtime.Remoting;
 
 namespace PADIMapNoReduce
 {
@@ -15,16 +16,22 @@ namespace PADIMapNoReduce
         Dictionary<string, string> originalKeyVal = new Dictionary<string, string>();
         Dictionary<string, string> processedKeyVal = new Dictionary<string, string>();
 
-        TcpChannel channel;
         IWorkerService knownWorker;
 
         List<string> file;
         int lines;
         string outputFolder;
 
-        public ClientService(string workerEntryUrl)
+        public ClientService(int port)
         {
-            channel = new TcpChannel();
+            TcpChannel channel = new TcpChannel(port);
+            ChannelServices.RegisterChannel(channel, true);
+            RemotingServices.Marshal(this, "C", typeof(ClientService));
+        }
+
+        public void init(string workerEntryUrl)
+        {
+            TcpChannel channel = new TcpChannel();
             ChannelServices.RegisterChannel(channel, true);
             knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
         }

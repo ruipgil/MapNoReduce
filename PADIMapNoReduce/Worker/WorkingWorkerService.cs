@@ -9,13 +9,14 @@ using System.Runtime.Remoting.Channels.Tcp;
 
 namespace PADIMapNoReduce
 {
-    class InnerWorker : MarshalByRefObject, IInnerWorker
+    class WorkingWorkerService : MarshalByRefObject, IWorkingWorkerService
     {
-        public InnerWorker(int port)
+        // The workers should be between 30001 and 39999, but what about the inner workers?
+        public WorkingWorkerService(int port)
         {
             TcpChannel channel = new TcpChannel(port);
             ChannelServices.RegisterChannel(channel, true);
-            RemotingServices.Marshal(this, "W", typeof(InnerWorker));
+            RemotingServices.Marshal(this, "W", typeof(WorkingWorkerService));
         }
 
         public void work(int start, int end, int split, string clientUrl)

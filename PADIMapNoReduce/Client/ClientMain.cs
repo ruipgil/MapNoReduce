@@ -14,12 +14,11 @@ namespace PADIMapNoReduce
         static void Main(string[] args)
         {
             // Clients should be between 10001 and 19999
-            TcpChannel channel = new TcpChannel(10000);
-            ChannelServices.RegisterChannel(channel, true);
-
             // Workers are between 30001 and 39999
-            ClientService client = new ClientService(@"http://localhost:30001/W");
-            RemotingServices.Marshal(client, "C", typeof(ClientService));
+            ClientService client = new ClientService(10001);
+            string workerAddress = @"http://localhost:30001/W";
+            client.init(workerAddress);
+            client.submit(@"./input.in", 1);
         }
     }
 }

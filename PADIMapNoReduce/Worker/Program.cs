@@ -12,7 +12,8 @@ namespace PADIMapNoReduce
         static void Main(string[] args)
         {
             int port = 30001;
-            InnerWorker inner = new InnerWorker(port);
+            WorkingWorkerService inner = new WorkingWorkerService(port);
+
             Console.Out.WriteLine("Press enter to close");
             Console.In.ReadLine();
         }
