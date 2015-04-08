@@ -20,6 +20,7 @@ namespace PADIMapNoReduce
 
         List<string> file;
         int lines;
+        string outputFolder;
 
         public ClientService(string workerEntryUrl)
         {
@@ -38,6 +39,22 @@ namespace PADIMapNoReduce
         public List<string> get(int start, int end)
         {
             return file.GetRange(start, end - start);
+        }
+
+        void set(int split, List<IList<KeyValuePair<string, string>>> results)
+        {
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(outputFolder+@"/"+split+".out"))
+            {
+                foreach (List<KeyValuePair<string, string>> result in results)
+                {
+                    string entryResult = "";
+                    foreach (KeyValuePair<string, string> entry in result)
+                    {
+                        entryResult = entry.Key + ":" + entry.Value + ",";
+                    }
+                    file.WriteLine(entryResult);
+                }
+            }
         }
     }
 }
