@@ -6,8 +6,14 @@ using System.Threading.Tasks;
 
 namespace PADIMapNoReduce
 {
-    class SampleMapper : IMapper
+    public class SampleMapper : IMapper
     {
-        IList<KeyValuePair<string, string>> Map(string fileLine);
+        public IList<KeyValuePair<string, string>> Map(string fileLine)
+        {
+            return new List<KeyValuePair<string, string>>() {
+                new KeyValuePair<string, string>("the first", "the "+fileLine),
+                new KeyValuePair<string, string>("the second", "the "+fileLine)
+            };
+        }
     }
 }

@@ -20,7 +20,7 @@ namespace PADIMapNoReduce
         // returns a list with the values split into chunks
         // each chunk is a tuple, the first item is INCUSIVE the second item is NOT INCLUSIVE
         // this means that a tuple of 6,9 represents the indexes from 6 to 8
-        public List<Tuple<int,int>> split(int inputSize, int splits)
+        private List<Tuple<int,int>> split(int inputSize, int splits)
         {
             List<Tuple<int, int>> result = new List<Tuple<int, int>>();
             int splitSize = inputSize / splits;

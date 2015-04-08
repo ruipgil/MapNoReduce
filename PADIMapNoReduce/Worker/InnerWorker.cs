@@ -3,11 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.Remoting;
+using System.Runtime.Remoting.Channels;
+using System.Runtime.Remoting.Channels.Tcp;
 
 namespace PADIMapNoReduce
 {
     class InnerWorker : MarshalByRefObject, IInnerWorker
     {
+        public InnerWorker(int port)
+        {
+            TcpChannel channel = new TcpChannel(port);
+            ChannelServices.RegisterChannel(channel, true);
+            RemotingServices.Marshal(this, "W", typeof(InnerWorker));
+        }
+
         public void work(int start, int end, int split, string clientUrl)
         {
             // open connection with client, through clientUrl

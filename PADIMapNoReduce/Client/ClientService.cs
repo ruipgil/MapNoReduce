@@ -43,7 +43,8 @@ namespace PADIMapNoReduce
 
         void set(int split, List<IList<KeyValuePair<string, string>>> results)
         {
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(outputFolder+@"/"+split+".out"))
+            string outputFile = outputFolder + @"/" + split + ".out";
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(outputFile))
             {
                 foreach (List<KeyValuePair<string, string>> result in results)
                 {
