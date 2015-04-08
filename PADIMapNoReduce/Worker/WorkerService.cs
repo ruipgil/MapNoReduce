@@ -14,9 +14,10 @@ namespace PADIMapNoReduce
     {
         public void submit(int inputSize, int splits)
         {
+            Console.Out.WriteLine("# submit "+inputSize+" "+splits);
             List<Tuple<int, int>> s = split(inputSize, splits);
             List<IWorkingWorkerService> workers = getAvaiableWorkers();
-            string clientUrl = "";
+            string clientUrl = "tcp://localhost:10001/C";
 
             distributeWorkToWorkers(s, workers, clientUrl);
         }
@@ -44,7 +45,7 @@ namespace PADIMapNoReduce
 
         private List<IWorkingWorkerService> getAvaiableWorkers()
         {
-            return new List<IWorkingWorkerService>();
+            return new List<IWorkingWorkerService>() { (IWorkingWorkerService)this };
         }
 
         // missing mapper

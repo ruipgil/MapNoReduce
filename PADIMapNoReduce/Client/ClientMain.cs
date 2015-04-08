@@ -16,9 +16,10 @@ namespace PADIMapNoReduce
             // Clients should be between 10001 and 19999
             // Workers are between 30001 and 39999
             ClientService client = new ClientService(10001);
-            string workerAddress = @"http://localhost:30001/W";
+            string workerAddress = "tcp://localhost:30001/W";
             client.init(workerAddress);
-            client.submit(@"./input.in", 1);
+            client.submit(@"./input.txt", 1);
+            Console.In.ReadLine();
         }
     }
 }

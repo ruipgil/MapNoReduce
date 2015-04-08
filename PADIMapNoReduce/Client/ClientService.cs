@@ -20,7 +20,7 @@ namespace PADIMapNoReduce
 
         List<string> file;
         int lines;
-        string outputFolder;
+        string outputFolder = @"./";
 
         public ClientService(int port)
         {
@@ -31,26 +31,29 @@ namespace PADIMapNoReduce
 
         public void init(string workerEntryUrl)
         {
-            TcpChannel channel = new TcpChannel();
-            ChannelServices.RegisterChannel(channel, true);
+            Console.Out.WriteLine("#init "+workerEntryUrl);
             knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
         }
 
         public void submit(string inputFile, int splits) // incomplete
         {
+            Console.Out.WriteLine("#submiting");
             file = new List<string>(File.ReadAllLines(inputFile));
             lines = file.Count();
+            Console.Out.WriteLine("\tlines:"+lines);
             knownWorker.submit(lines, splits);
         }
 
         public List<string> get(int start, int end)
         {
+            Console.Out.WriteLine("#get "+start+" "+end);
             return file.GetRange(start, end - start);
         }
 
-        void set(int split, List<IList<KeyValuePair<string, string>>> results)
+        public void set(int split, List<IList<KeyValuePair<string, string>>> results)
         {
-            string outputFile = outputFolder + @"/" + split + ".out";
+            string outputFile = outputFolder + "/" + split + ".out";
+            Console.Out.WriteLine("#set "+split+" "+results.Count());
             using (System.IO.StreamWriter file = new System.IO.StreamWriter(outputFile))
             {
                 foreach (List<KeyValuePair<string, string>> result in results)
@@ -58,7 +61,7 @@ namespace PADIMapNoReduce
                     string entryResult = "";
                     foreach (KeyValuePair<string, string> entry in result)
                     {
-                        entryResult = entry.Key + ":" + entry.Value + ",";
+                        entryResult += entry.Key + ":" + entry.Value + ",";
                     }
                     file.WriteLine(entryResult);
                 }

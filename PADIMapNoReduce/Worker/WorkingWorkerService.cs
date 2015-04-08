@@ -9,7 +9,7 @@ using System.Runtime.Remoting.Channels.Tcp;
 
 namespace PADIMapNoReduce
 {
-    class WorkingWorkerService : MarshalByRefObject, IWorkingWorkerService
+    class WorkingWorkerService : WorkerService, IWorkingWorkerService
     {
         // The workers should be between 30001 and 39999, but what about the inner workers?
         public WorkingWorkerService(int port)
@@ -21,6 +21,7 @@ namespace PADIMapNoReduce
 
         public void work(int start, int end, int split, string clientUrl)
         {
+            Console.Out.WriteLine("#work "+start+" "+end+" "+split+" "+clientUrl);
             // open connection with client, through clientUrl
             IClientService client = (IClientService)Activator.GetObject(typeof(IClientService), clientUrl);
             // ask for data from start to end

@@ -40,7 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IClientService.cs" />
-    <Compile Include="IInnerWorker.cs" />
+    <Compile Include="IWorkingWorkerService.cs" />
     <Compile Include="IMapper.cs" />
     <Compile Include="IWorkerService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
