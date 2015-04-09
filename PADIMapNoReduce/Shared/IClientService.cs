@@ -21,7 +21,7 @@ namespace PADIMapNoReduce
         /// Sets the result of the mapping of a split
         /// </summary>
         /// <param name="split">The split index</param>
-        /// <param name="result">List with results of the mapping</param>
+        /// <param name="results">List with results of the mapping</param>
         void set(int split, List<IList<KeyValuePair<string, string>>> results);
     }
 }

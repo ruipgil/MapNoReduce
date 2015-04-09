@@ -13,19 +13,17 @@ namespace PADIMapNoReduce
 {
     public class ClientService : MarshalByRefObject, IClientService
     {
-        Dictionary<string, string> originalKeyVal = new Dictionary<string, string>();
-        Dictionary<string, string> processedKeyVal = new Dictionary<string, string>();
 
         IWorkerService knownWorker;
 
-        List<string> file;
+		List<string> fileContent;
         int lines;
         string outputFolder = @"./";
 
         public ClientService(int port)
         {
             TcpChannel channel = new TcpChannel(port);
-            ChannelServices.RegisterChannel(channel, true);
+            ChannelServices.RegisterChannel(channel, false);
             RemotingServices.Marshal(this, "C", typeof(ClientService));
         }
 
@@ -38,8 +36,8 @@ namespace PADIMapNoReduce
         public void submit(string inputFile, int splits) // incomplete
         {
             Console.Out.WriteLine("#submiting");
-            file = new List<string>(File.ReadAllLines(inputFile));
-            lines = file.Count();
+            fileContent = new List<string>(File.ReadAllLines(inputFile));
+            lines = fileContent.Count();
             Console.Out.WriteLine("\tlines:"+lines);
             knownWorker.submit(lines, splits);
         }
@@ -47,7 +45,7 @@ namespace PADIMapNoReduce
         public List<string> get(int start, int end)
         {
             Console.Out.WriteLine("#get "+start+" "+end);
-            return file.GetRange(start, end - start);
+            return fileContent.GetRange(start, end - start);
         }
 
         public void set(int split, List<IList<KeyValuePair<string, string>>> results)

@@ -18,8 +18,8 @@ namespace PADIMapNoReduce
             ClientService client = new ClientService(10001);
             string workerAddress = "tcp://localhost:30001/W";
             client.init(workerAddress);
-            client.submit(@"./input.txt", 1);
-            Console.In.ReadLine();
+            client.submit(@"./input.txt", 4);
+            //Console.In.ReadLine();
         }
     }
 }
