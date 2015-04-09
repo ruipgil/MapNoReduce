@@ -7,6 +7,7 @@ using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Services;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace PADIMapNoReduce
 {
@@ -54,13 +55,24 @@ namespace PADIMapNoReduce
             // key is the index of 'List<int> splits' and value is the worker responsible for the job
             Dictionary<int, IWorkingWorkerService> splitsToWorker = new Dictionary<int, IWorkingWorkerService>();
             int workersCount = workers.Count();
+            
+            ManualResetEvent[] doneEvents = new ManualResetEvent[splits.Count()];
+
+            Console.WriteLine("launching {0} tasks...", workersCount);
             for (int i = 0; i < splits.Count(); i++)
             {
+                doneEvents[i] = new ManualResetEvent(false);
                 IWorkingWorkerService worker = workers[i % workersCount];
                 splitsToWorker.Add(i, worker);
                 Tuple<int, int> split = splits[i];
-                worker.work(split.Item1, split.Item2, i, clientUrl); // missing mapper
+
+                ThreadWorker t = new ThreadWorker(worker, split.Item1, split.Item2, i, clientUrl, doneEvents[i]);
+                ThreadPool.QueueUserWorkItem(t.ThreadPoolCallback, i);
+                //worker.work(split.Item1, split.Item2, i, clientUrl); // missing mapper
             }
+
+            WaitHandle.WaitAll(doneEvents);
+            Console.WriteLine("All calculations are complete.");
         }
     }
 }

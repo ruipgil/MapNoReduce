@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ThreadWorker.cs" />
     <Compile Include="WorkingWorkerService.cs" />
     <Compile Include="SampleMapper.cs" />
     <Compile Include="WorkerService.cs" />
