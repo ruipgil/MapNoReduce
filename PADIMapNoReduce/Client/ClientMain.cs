@@ -19,7 +19,6 @@ namespace PADIMapNoReduce
             string workerAddress = "tcp://localhost:30001/W";
             client.init(workerAddress);
             client.submit(@"./input.txt", 4);
-            //Console.In.ReadLine();
         }
     }
 }
