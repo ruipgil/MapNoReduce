@@ -57,7 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj">
-      <Project>{56971102-adec-45a2-910c-3d0c0e5b5814}</Project>
+      <Project>{56971102-ADEC-45A2-910C-3D0C0E5B5814}</Project>
       <Name>Shared</Name>
     </ProjectReference>
   </ItemGroup>
