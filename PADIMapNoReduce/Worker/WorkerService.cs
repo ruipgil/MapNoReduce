@@ -27,20 +27,27 @@ namespace PADIMapNoReduce
         // this means that a tuple of 6,9 represents the indexes from 6 to 8
         private List<Tuple<int,int>> split(int inputSize, int splits)
         {
-            List<Tuple<int, int>> result = new List<Tuple<int, int>>();
-            int splitSize = inputSize / splits;
-            for (int i=1; i<=splits; i++)
-            {
-                result.Add(new Tuple<int,int>((i-1)*splitSize, i*splitSize));
-            }
+			var temp = new List<int> ();
+			int chunk = inputSize / splits;
 
-            int rest = inputSize - splitSize * splits;
-            if (rest != 0)
-            {
-                int last = splits * splitSize;
-                result.Add(new Tuple<int, int>(last, last+rest));
-            }
-            return result;
+			int rest = inputSize % splits;
+			for (var i = 0; i < splits; i++) {
+				int toAdd = chunk;
+				if (rest > i) {
+					toAdd += 1;
+				}
+				temp.Add(toAdd);
+			}
+
+			List<Tuple<int, int>> result = new List<Tuple<int, int>> ();
+			result.Add (new Tuple<int, int> (0, temp[0]));
+			for(int i=1; i<temp.Count(); i++){
+				int lowerBound = result[i-1].Item2;
+				int higherBound = lowerBound + temp[i];
+				result.Add(new Tuple<int, int>(lowerBound, higherBound));
+			}
+
+			return result;
         }
 
         private List<IWorkingWorkerService> getAvaiableWorkers()

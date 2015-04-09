@@ -15,7 +15,7 @@ namespace PADIMapNoReduce
         public WorkingWorkerService(int port)
         {
             TcpChannel channel = new TcpChannel(port);
-            ChannelServices.RegisterChannel(channel, true);
+            ChannelServices.RegisterChannel(channel, false);
             RemotingServices.Marshal(this, "W", typeof(WorkingWorkerService));
         }
 
