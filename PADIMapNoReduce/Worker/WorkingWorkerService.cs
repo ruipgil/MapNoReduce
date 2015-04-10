@@ -48,7 +48,6 @@ namespace PADIMapNoReduce
                     if (type.FullName.EndsWith("." + mapperName))
                     {
                         ClassObj = Activator.CreateInstance(type);
-                        System.Console.WriteLine("Remote Instace: " + ClassObj.ToString());
                         // process data with mapper
                         foreach (string value in values)
                         {
