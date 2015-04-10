@@ -33,7 +33,7 @@ namespace PADIMapNoReduce
                 }
                 if (args.Length > 1)
                 {
-                    int s = args.Length - 2;
+                    int s = args.Length - 1;
                     if (s < 0)
                     {
                         s = 0;

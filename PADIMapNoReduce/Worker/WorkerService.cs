@@ -14,7 +14,7 @@ namespace PADIMapNoReduce
     public abstract class WorkerService : MarshalByRefObject, IWorkerService
     {
         private List<string> workerMap = new List<string>();
-        private List<IWorkingWorkerService> avaialableWorkers;
+        private List<IWorkingWorkerService> avaialableWorkers = null;
         public void submit(int inputSize, int splits, byte[] code, string mapperName)
         {
             Console.Out.WriteLine("# submit "+inputSize+" "+splits);
@@ -70,7 +70,8 @@ namespace PADIMapNoReduce
                     {
                         IWorkingWorkerService worker = (IWorkingWorkerService)Activator.GetObject(typeof(IWorkingWorkerService), workerUrl);
                         temp.Add(worker);
-                    }catch(Exception e) {}
+                    }catch(Exception e) {
+                    }
                 }
                 avaialableWorkers = temp;
             }
