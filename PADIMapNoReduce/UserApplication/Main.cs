@@ -62,7 +62,7 @@ namespace UserApplication
 
         private void connectClick(object sender, EventArgs e)
         {
-            if (portUpDown.Text.Equals("Connect"))
+            if (connectButton.Text.Equals("Connect"))
             {
 
                 int clientPort = Decimal.ToInt32(portUpDown.Value);

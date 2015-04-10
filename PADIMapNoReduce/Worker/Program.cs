@@ -33,7 +33,12 @@ namespace PADIMapNoReduce
                 }
                 if (args.Length > 1)
                 {
-                    workerMap = (new List<string>(args)).GetRange(1, args.Length - 2);
+                    int s = args.Length - 2;
+                    if (s < 0)
+                    {
+                        s = 0;
+                    }
+                    workerMap = (new List<string>(args)).GetRange(1, s);
                 }
             }
             WorkingWorkerService inner = new WorkingWorkerService(port);

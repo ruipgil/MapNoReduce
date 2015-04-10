@@ -72,7 +72,7 @@ namespace PADIMapNoReduce
                         temp.Add(worker);
                     }catch(Exception e) {}
                 }
-                temp = avaialableWorkers;
+                avaialableWorkers = temp;
             }
             return avaialableWorkers;
         }
