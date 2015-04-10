@@ -13,10 +13,12 @@ namespace PADIMapNoReduce
         private int _item2;
         private int _splitNumber;
         private string _url;
+        private byte[] _code;
+        private string _mapperName;
         private IWorkingWorkerService _worker;
         private ManualResetEvent _doneEvent;
         
-        public ThreadWorker(IWorkingWorkerService worker, int item1, int item2, int splitNumber, string url, ManualResetEvent doneEvent)
+        public ThreadWorker(IWorkingWorkerService worker, int item1, int item2, int splitNumber, string url, ManualResetEvent doneEvent, byte[] code, string mapperName)
         {
             _worker = worker;
             _item1 = item1;
@@ -24,13 +26,15 @@ namespace PADIMapNoReduce
             _splitNumber = splitNumber;
             _url = url;
             _doneEvent = doneEvent;
+            _code = code;
+            _mapperName = mapperName;
         }
 
         public void ThreadPoolCallback(Object threadContext)
         {
             int threadIndex = (int)threadContext;
             Console.WriteLine("thread {0} started...", threadIndex);
-            _worker.work(_item1, _item2, _splitNumber, _url);
+            _worker.work(_item1, _item2, _splitNumber, _url,_code,_mapperName);
             Console.WriteLine("thread {0} result calculated...", threadIndex);
             _doneEvent.Set();
         }

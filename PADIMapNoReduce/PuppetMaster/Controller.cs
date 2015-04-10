@@ -20,7 +20,10 @@ namespace PADIMapNoReduce
 
         public void createWorker()
         {
-            Process.Start("Worker.exe", Convert.ToString(workerPortNr));
+            string s = Convert.ToString(workerPortNr);
+            string[] args = new string[1];
+            args[0] = s;
+            Process.Start("Worker.exe", s);
             workerPortNr++;
         }
 

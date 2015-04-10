@@ -18,7 +18,7 @@ namespace PADIMapNoReduce
 
 		List<string> fileContent;
         int lines;
-        string outputFolder = @"./";
+        string outputFolder;
 
         public ClientService(int port)
         {
@@ -33,13 +33,14 @@ namespace PADIMapNoReduce
             knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
         }
 
-        public void submit(string inputFile, int splits) // incomplete
+        public void submit(string inputFile, string outputFolder, int splits, byte[] code, string mapperName) // incomplete
         {
+            this.outputFolder = outputFolder;
             Console.Out.WriteLine("#submiting");
             fileContent = new List<string>(File.ReadAllLines(inputFile));
             lines = fileContent.Count();
             Console.Out.WriteLine("\tlines:"+lines);
-            knownWorker.submit(lines, splits);
+            knownWorker.submit(lines, splits, code, mapperName);
         }
 
         public List<string> get(int start, int end)
