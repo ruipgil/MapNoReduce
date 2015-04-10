@@ -13,6 +13,8 @@ namespace PADIMapNoReduce
 {
     public abstract class WorkerService : MarshalByRefObject, IWorkerService
     {
+        private List<string> workerMap = new List<string>();
+        private List<IWorkingWorkerService> avaialableWorkers;
         public void submit(int inputSize, int splits, byte[] code, string mapperName)
         {
             Console.Out.WriteLine("# submit "+inputSize+" "+splits);
@@ -51,9 +53,28 @@ namespace PADIMapNoReduce
 			return result;
         }
 
+        public void updateWorkerMap(List<string> wmap)
+        {
+            workerMap = wmap;
+            avaialableWorkers = null;
+        }
+
         private List<IWorkingWorkerService> getAvaiableWorkers()
         {
-            return new List<IWorkingWorkerService>() { (IWorkingWorkerService)this };
+            if (avaialableWorkers == null)
+            {
+                var temp = new List<IWorkingWorkerService>() { (IWorkingWorkerService)this };
+                foreach (var workerUrl in workerMap)
+                {
+                    try
+                    {
+                        IWorkingWorkerService worker = (IWorkingWorkerService)Activator.GetObject(typeof(IWorkingWorkerService), workerUrl);
+                        temp.Add(worker);
+                    }catch(Exception e) {}
+                }
+                temp = avaialableWorkers;
+            }
+            return avaialableWorkers;
         }
 
         // missing mapper
