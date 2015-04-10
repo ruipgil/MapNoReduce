@@ -294,6 +294,7 @@
             this.Controls.Add(this.connectButton);
             this.Name = "Main";
             this.Text = "User Application - PADI MapNoReduce";
+            //this.Load += new System.EventHandler(this.Main_Load);
             ((System.ComponentModel.ISupportInitialize)(this.portUpDown)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitsUpDown)).EndInit();
             this.ResumeLayout(false);
