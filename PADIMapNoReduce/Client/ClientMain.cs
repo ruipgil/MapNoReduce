@@ -20,11 +20,11 @@ namespace PADIMapNoReduce
             string workerAddress = "tcp://localhost:30001/W";
             client.init(workerAddress);
 
-            string IMapperPath = @"E:/Documentos/GitHub/PADI/PADIMapNoReduce/Client/bin/Debug/Shared.dll";
+            string IMapperPath = @"./Shared.dll";
             byte[] code = System.IO.File.ReadAllBytes(IMapperPath);
             string mapperName = "SampleMapper";
             System.Console.WriteLine("Path on the way:" + IMapperPath);
-            client.submit(@"../../input.txt", 4,code,mapperName);
+            client.submit(@"./input.txt", "./", 4, code, mapperName);
             System.Console.ReadLine();
         }
     }
