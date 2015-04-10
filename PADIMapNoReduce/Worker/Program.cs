@@ -7,11 +7,17 @@ using System.Runtime.Remoting;
 
 namespace PADIMapNoReduce
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            int port = 30001;
+            int port;
+            if (Convert.ToInt32(args[0]) == 0)
+            {
+                port = 30001;
+            } else {
+                port = Convert.ToInt32(args[0]);
+            }
             WorkingWorkerService inner = new WorkingWorkerService(port);
 
             Console.Out.WriteLine("Press enter to close");
