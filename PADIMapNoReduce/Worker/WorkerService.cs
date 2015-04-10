@@ -13,14 +13,14 @@ namespace PADIMapNoReduce
 {
     public abstract class WorkerService : MarshalByRefObject, IWorkerService
     {
-        public void submit(int inputSize, int splits)
+        public void submit(int inputSize, int splits, byte[] code, string mapperName)
         {
             Console.Out.WriteLine("# submit "+inputSize+" "+splits);
             List<Tuple<int, int>> s = split(inputSize, splits);
             List<IWorkingWorkerService> workers = getAvaiableWorkers();
             string clientUrl = "tcp://localhost:10001/C";
 
-            distributeWorkToWorkers(s, workers, clientUrl);
+            distributeWorkToWorkers(s, workers, clientUrl,code,mapperName);
         }
 
         // returns a list with the values split into chunks
@@ -57,7 +57,7 @@ namespace PADIMapNoReduce
         }
 
         // missing mapper
-        private void distributeWorkToWorkers(List<Tuple<int, int>> splits, List<IWorkingWorkerService> workers, string clientUrl)
+        private void distributeWorkToWorkers(List<Tuple<int, int>> splits, List<IWorkingWorkerService> workers, string clientUrl, byte[] code, string mapperName)
         {
             // key is the index of 'List<int> splits' and value is the worker responsible for the job
             Dictionary<int, IWorkingWorkerService> splitsToWorker = new Dictionary<int, IWorkingWorkerService>();
@@ -73,9 +73,9 @@ namespace PADIMapNoReduce
                 splitsToWorker.Add(i, worker);
                 Tuple<int, int> split = splits[i];
 
-                ThreadWorker t = new ThreadWorker(worker, split.Item1, split.Item2, i, clientUrl, doneEvents[i]);
+                ThreadWorker t = new ThreadWorker(worker, split.Item1, split.Item2, i, clientUrl, doneEvents[i],code, mapperName);
                 ThreadPool.QueueUserWorkItem(t.ThreadPoolCallback, i);
-                //worker.work(split.Item1, split.Item2, i, clientUrl); // missing mapper
+                //worker.work(split.Item1, split.Item2, i, clientUrl, code, mapperName); // missing mapper
             }
 
             WaitHandle.WaitAll(doneEvents);

@@ -44,7 +44,6 @@
   <ItemGroup>
     <Compile Include="ThreadWorker.cs" />
     <Compile Include="WorkingWorkerService.cs" />
-    <Compile Include="SampleMapper.cs" />
     <Compile Include="WorkerService.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

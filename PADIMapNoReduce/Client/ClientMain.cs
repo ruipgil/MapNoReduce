@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
+using System.Reflection;
 
 namespace PADIMapNoReduce
 {
@@ -18,7 +19,13 @@ namespace PADIMapNoReduce
             ClientService client = new ClientService(10001);
             string workerAddress = "tcp://localhost:30001/W";
             client.init(workerAddress);
-            client.submit(@"../../input.txt", 4);
+
+            string IMapperPath = @"E:/Documentos/GitHub/PADI/PADIMapNoReduce/Client/bin/Debug/Shared.dll";
+            byte[] code = System.IO.File.ReadAllBytes(IMapperPath);
+            string mapperName = "SampleMapper";
+            System.Console.WriteLine("Path on the way:" + IMapperPath);
+            client.submit(@"../../input.txt", 4,code,mapperName);
+            System.Console.ReadLine();
         }
     }
 }

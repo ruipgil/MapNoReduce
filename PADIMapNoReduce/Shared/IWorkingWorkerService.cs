@@ -19,6 +19,6 @@ namespace PADIMapNoReduce
         /// <param name="end">End index (line), exclusive</param>
         /// <param name="split">The identifier of this split</param>
         /// <param name="clientUrl">Client url</param>
-        void work(int start, int end, int split, string clientUrl);
+        void work(int start, int end, int split, string clientUrl, byte[] code,string mapperName);
     }
 }

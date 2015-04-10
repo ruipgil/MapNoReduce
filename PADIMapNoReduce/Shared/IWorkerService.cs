@@ -11,6 +11,6 @@ namespace PADIMapNoReduce
     /// </summary>
     public interface IWorkerService
     {
-        void submit(int inputSize, int splits);
+        void submit(int inputSize, int splits, byte[] code, string mapperName);
     }
 }
