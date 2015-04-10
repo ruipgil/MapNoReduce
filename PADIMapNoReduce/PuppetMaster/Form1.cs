@@ -21,7 +21,7 @@ namespace PADIMapNoReduce
 
         private void button1_Click(object sender, EventArgs e)
         {
-            Console.Out.WriteLine("Creating Worker");
+            //Console.Out.WriteLine("Creating Worker");
             _controller.createWorker();
             
         }
