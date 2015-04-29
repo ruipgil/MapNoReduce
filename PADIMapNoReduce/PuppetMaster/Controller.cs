@@ -18,9 +18,52 @@ namespace PADIMapNoReduce
 
         }
 
+        public void runScript(String location)
+        {
+            Console.Out.WriteLine("Running Script...");
+            String line;
+            System.IO.StreamReader file = new System.IO.StreamReader(location);
+            while ((line = file.ReadLine()) != null)
+            {
+                //Console.WriteLine(line);
+                string[] splits = line.Split(new string[] { " " }, 2, StringSplitOptions.None);
+                if (splits[0].Equals("WORKER"))
+                {
+                }
+                if (splits[0].Equals("SUBMIT"))
+                {
+                }
+                if (splits[0].Equals("WAIT"))
+                {
+                }
+                if (splits[0].Equals("STATUS"))
+                {
+                }
+                if (splits[0].Equals("SLOWW"))
+                {
+                }
+                if (splits[0].Equals("FREEZEW"))
+                {
+                }
+                if (splits[0].Equals("UNFREEZEW"))
+                {
+                }
+                if (splits[0].Equals("FREEZEC"))
+                {
+                }
+                if (splits[0].Equals("UNFREEZEC"))
+                {
+                }
+      
+            }
+
+            file.Close();
+
+        }
+
         public void createWorker()
         {
-            string s = Convert.ToString(workerPortNr);
+            String s = Convert.ToString(workerPortNr);
             /*string[] args = new string[1];
             args[0] = s;*/
             Console.Out.WriteLine("Creating Worker @ port {0}", workerPortNr);
@@ -30,12 +73,12 @@ namespace PADIMapNoReduce
 
         public void createWorker(int port, string otherWorkers)
         {
-            string s = Convert.ToString(port) + " " + otherWorkers;
+            String s = Convert.ToString(port) + " " + otherWorkers;
             /*string[] args = new string[1];
             args[0] = s;*/
             Console.Out.WriteLine("Creating Worker @ port {0}", port);
             Process.Start("Worker.exe", s);
-            workerPortNr++;
+            
         }
 
     }

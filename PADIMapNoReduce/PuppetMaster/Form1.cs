@@ -34,5 +34,25 @@ namespace PADIMapNoReduce
         {
 
         }
+
+        private void label3_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void selectInputFile(object sender, EventArgs e)
+        {
+            selectFile(openInputFileDialog, inputFileTextBox);
+        }
+
+        private void selectFile(OpenFileDialog dialog, TextBox tb)
+        {
+            DialogResult result = dialog.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                tb.Text = dialog.FileName;
+            }
+        }
+
     }
 }
