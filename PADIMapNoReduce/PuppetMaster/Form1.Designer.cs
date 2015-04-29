@@ -37,6 +37,7 @@
             this.inputFileTextBox = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.openInputFileDialog = new System.Windows.Forms.OpenFileDialog();
+            this.runScript = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.workerPort)).BeginInit();
             this.SuspendLayout();
             // 
@@ -130,11 +131,22 @@
             // 
             this.openInputFileDialog.FileName = "openFileDialog1";
             // 
+            // runScript
+            // 
+            this.runScript.Location = new System.Drawing.Point(90, 57);
+            this.runScript.Name = "runScript";
+            this.runScript.Size = new System.Drawing.Size(124, 23);
+            this.runScript.TabIndex = 9;
+            this.runScript.Text = "Run Script";
+            this.runScript.UseVisualStyleBackColor = true;
+            this.runScript.Click += new System.EventHandler(this.runScript_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(292, 273);
+            this.Controls.Add(this.runScript);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.inputFileTextBox);
             this.Controls.Add(this.browseFolder);
@@ -162,6 +174,7 @@
         private System.Windows.Forms.TextBox inputFileTextBox;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.OpenFileDialog openInputFileDialog;
+        private System.Windows.Forms.Button runScript;
     }
 }
 

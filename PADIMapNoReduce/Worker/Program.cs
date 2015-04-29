@@ -44,6 +44,12 @@ namespace PADIMapNoReduce
             WorkingWorkerService inner = new WorkingWorkerService(port);
             inner.updateWorkerMap(workerMap);
 
+            Console.Out.WriteLine("I haver port: " + port);
+            Console.Out.WriteLine("I know: ");
+            foreach(string worker in workerMap){
+                Console.Out.Write(worker + " ");
+            }
+            Console.Out.WriteLine(" ");
             Console.Out.WriteLine("Press enter to close");
             Console.In.ReadLine();
         }

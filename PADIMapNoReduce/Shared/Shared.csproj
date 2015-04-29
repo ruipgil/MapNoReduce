@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IClientService.cs" />
+    <Compile Include="IPuppetMasterService.cs" />
     <Compile Include="IWorkingWorkerService.cs" />
     <Compile Include="IMapper.cs" />
     <Compile Include="IWorkerService.cs" />

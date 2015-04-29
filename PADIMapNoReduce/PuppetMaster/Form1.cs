@@ -54,5 +54,10 @@ namespace PADIMapNoReduce
             }
         }
 
+        private void runScript_Click(object sender, EventArgs e)
+        {
+            _controller.runScript(inputFileTextBox.Text);
+        }
+
     }
 }
