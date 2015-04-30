@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Threading;
 
 namespace PADIMapNoReduce
 {
@@ -11,6 +12,7 @@ namespace PADIMapNoReduce
 
     {
         private int workerPortNr = 30001;
+        List<KeyValuePair<int, string>> workerIds = new List<KeyValuePair<int, string>>();
 
         public void run()
         {
@@ -27,14 +29,16 @@ namespace PADIMapNoReduce
             {
                 //Console.WriteLine(line);
                 string[] splits = line.Split(new string[] { " " }, 2, StringSplitOptions.None);
+                if (splits[0].StartsWith("%")) { }
                 if (splits[0].Equals("WORKER"))
                 {
                     string[] tempSplits = splits[1].Split(new string[] { " " }, 4, StringSplitOptions.None);
                     Console.Out.WriteLine("Creating Worker...");
                    // Console.Out.WriteLine(splits[1]);
                     
-                    //TODO SAVE WORKER ID
-                    //splits[1] something something
+                    //SAVE WORKER ID
+                    KeyValuePair<int, string> kvpair = new KeyValuePair<int, string>(int.Parse(tempSplits[0]), tempSplits[2]);
+                    workerIds.Add(kvpair);
 
                     String pmEntryUrl = tempSplits[1];
                     IPuppetMasterService pm = (IPuppetMasterService)Activator.GetObject(typeof(IPuppetMasterService), pmEntryUrl);
@@ -66,6 +70,8 @@ namespace PADIMapNoReduce
                 }
                 if (splits[0].Equals("WAIT"))
                 {
+                    Console.Out.WriteLine("Sleeping for {0} seconds", splits[1]);
+                    Thread.Sleep(int.Parse(splits[1]) * 1000);
                 }
                 if (splits[0].Equals("STATUS"))
                 {

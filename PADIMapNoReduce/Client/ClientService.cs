@@ -15,6 +15,8 @@ namespace PADIMapNoReduce
     {
 
         IWorkerService knownWorker;
+        string knownWorkerUrl;
+        bool hasKnownWorker = false;
 
 		List<string> fileContent;
         int lines;
@@ -30,11 +32,17 @@ namespace PADIMapNoReduce
         public void init(string workerEntryUrl)
         {
             Console.Out.WriteLine("#init "+workerEntryUrl);
-            knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
+            knownWorkerUrl = workerEntryUrl;
+            //knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
         }
 
         public void submit(string inputFile, string outputFolder, int splits, byte[] code, string mapperName) // incomplete
         {
+            if (!hasKnownWorker)
+            {
+                knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), knownWorkerUrl);
+                hasKnownWorker = true;
+            }
             this.outputFolder = outputFolder;
             Console.Out.WriteLine("#submiting");
             fileContent = new List<string>(File.ReadAllLines(inputFile));
