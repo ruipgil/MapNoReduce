@@ -23,5 +23,9 @@ namespace PADIMapNoReduce
         /// <param name="split">The split index</param>
         /// <param name="results">List with results of the mapping</param>
         void set(int split, List<IList<KeyValuePair<string, string>>> results);
+
+
+        // TODO ADDED THIS, CAN I?
+        void submit(string inputFile, string outputFolder, int splits, byte[] code, string mapperName);
     }
 }

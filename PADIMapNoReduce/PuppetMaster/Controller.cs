@@ -26,25 +26,43 @@ namespace PADIMapNoReduce
             while ((line = file.ReadLine()) != null)
             {
                 //Console.WriteLine(line);
-                string[] splits = line.Split(new string[] { " " }, 5, StringSplitOptions.None);
+                string[] splits = line.Split(new string[] { " " }, 2, StringSplitOptions.None);
                 if (splits[0].Equals("WORKER"))
                 {
+                    string[] tempSplits = splits[1].Split(new string[] { " " }, 4, StringSplitOptions.None);
                     Console.Out.WriteLine("Creating Worker...");
                    // Console.Out.WriteLine(splits[1]);
                     
                     //TODO SAVE WORKER ID
                     //splits[1] something something
 
-                    String pmEntryUrl = splits[2];
+                    String pmEntryUrl = tempSplits[1];
                     IPuppetMasterService pm = (IPuppetMasterService)Activator.GetObject(typeof(IPuppetMasterService), pmEntryUrl);
                     //TODO what to do with <entryurl> (split[4])???
                     
                     //TODO IMPROVE THE CREATION OF WORKER GIVING THE URL
-                    pm.createWorker(splits[3], splits[4]);
+                    pm.createWorker(tempSplits[2], tempSplits[3]);
                    
                 }
                 if (splits[0].Equals("SUBMIT"))
                 {
+                    Console.Out.WriteLine("Submitting job...");
+                    string[] tempSplits = splits[1].Split(new string[] { " " }, 6, StringSplitOptions.None);
+                    String workerEntryUrl = tempSplits[0];
+                    String inputFile = tempSplits[1];
+                    String outputFile = tempSplits[2];
+                    int nrSplits = int.Parse(tempSplits[3]);
+                    String mapName = tempSplits[4];
+                    String mapPath = tempSplits[5];
+                    IWorkerService worker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
+
+                    
+                    // TODO I ASSUME THE CLIENT IS ALWAYS IN THE SAME LOCATION!!
+                    IClientService client = (IClientService)Activator.GetObject(typeof(IWorkerService), "tcp://localhost:10001/C");
+                    byte[] code = System.IO.File.ReadAllBytes(mapPath);
+                    client.submit(inputFile, outputFile, nrSplits, code, mapName);
+
+                    
                 }
                 if (splits[0].Equals("WAIT"))
                 {
