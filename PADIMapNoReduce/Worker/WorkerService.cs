@@ -15,6 +15,9 @@ namespace PADIMapNoReduce
     {
         private List<string> workerMap = new List<string>();
         private List<IWorkingWorkerService> avaialableWorkers = null;
+        private bool _freeze = false;
+        private int _slow = 0;
+
         public void submit(int inputSize, int splits, byte[] code, string mapperName)
         {
             Console.Out.WriteLine("# submit "+inputSize+" "+splits);
@@ -94,14 +97,46 @@ namespace PADIMapNoReduce
                 IWorkingWorkerService worker = workers[i % workersCount];
                 splitsToWorker.Add(i, worker);
                 Tuple<int, int> split = splits[i];
-
                 ThreadWorker t = new ThreadWorker(worker, split.Item1, split.Item2, i, clientUrl, doneEvents[i],code, mapperName);
                 ThreadPool.QueueUserWorkItem(t.ThreadPoolCallback, i);
                 //worker.work(split.Item1, split.Item2, i, clientUrl, code, mapperName); // missing mapper
+                
             }
 
             WaitHandle.WaitAll(doneEvents);
             Console.WriteLine("All calculations are complete.");
         }
+
+        public void freezeWorker()
+        {
+            _freeze = true;
+        }
+
+        public void unFreezeWorker()
+        {
+            _freeze = false;
+        }
+        public bool getFreeze()
+        {
+            return _freeze;
+        }
+
+        public void slowWorker(int seconds){
+            _slow = seconds;
+        }
+
+        public int getSlowTime()
+        {
+            //resets slow worker or should keep slowing it down?
+            //int seconds = _slow;
+            //_slow = 0;
+            return _slow;
+        }
+
+        public string getStatus()
+        {
+            return "";
+        }
+
     }
 }

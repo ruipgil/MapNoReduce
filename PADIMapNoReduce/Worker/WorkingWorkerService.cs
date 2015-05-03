@@ -7,11 +7,13 @@ using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Reflection;
+using System.Threading;
 
 namespace PADIMapNoReduce
 {
     class WorkingWorkerService : WorkerService, IWorkingWorkerService
     {
+
         // The workers should be between 30001 and 39999, but what about the inner workers?
         public WorkingWorkerService(int port)
         {
@@ -36,6 +38,8 @@ namespace PADIMapNoReduce
 
         private List<IList<KeyValuePair<string, string>>> processDataWithMapper(byte[] code, string mapperName, List<string> values)
         {
+            Thread.Sleep(getSlowTime());
+            
             List<IList<KeyValuePair<string, string>>> result = new List<IList<KeyValuePair<string, string>>>();
             
             object ClassObj = new object();
@@ -65,5 +69,7 @@ namespace PADIMapNoReduce
             }
             return result;
         }
+
+
     }
 }

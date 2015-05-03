@@ -75,21 +75,27 @@ namespace PADIMapNoReduce
                 }
                 if (splits[0].Equals("STATUS"))
                 {
+                    getStatus();
                 }
                 if (splits[0].Equals("SLOWW"))
                 {
+                    slowWorker(int.Parse(splits[1]),int.Parse(splits[2]));
                 }
                 if (splits[0].Equals("FREEZEW"))
                 {
+                    freezeWorker(int.Parse(splits[1]));
                 }
                 if (splits[0].Equals("UNFREEZEW"))
                 {
+                    unFreezeWorker(int.Parse(splits[1]));
                 }
                 if (splits[0].Equals("FREEZEC"))
                 {
+                    //call freeze with job tracker id
                 }
                 if (splits[0].Equals("UNFREEZEC"))
                 {
+                    // call unfreeze with job tracker id
                 }
       
             }
@@ -130,6 +136,53 @@ namespace PADIMapNoReduce
             Console.Out.WriteLine("Creating Worker @ port {0}", port);
             Process.Start("Worker.exe", s);
 
+        }
+
+        public void getStatus()
+        {
+            Console.Out.WriteLine("Obtaining the workers and job trackers status");
+            Console.Out.WriteLine("Status:");
+            foreach (KeyValuePair<int, string> pair in workerIds)
+            {
+                IWorkerService worker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), pair.Value);
+                Console.WriteLine("Worker {0} : {1} ", pair.Key, worker.getStatus());
+            }
+        }
+
+        public IWorkerService getWorker(int id)
+        {
+            string entryUrl = null;
+            //get entry url for the worker id
+            foreach (KeyValuePair<int, string> pair in workerIds)
+            {
+                if (id == pair.Key)
+                {
+                    entryUrl = pair.Value;
+                }
+            }
+
+            return (IWorkerService)Activator.GetObject(typeof(IWorkerService), entryUrl);
+        }
+
+        public void slowWorker(int id, int seconds)
+        {
+            Console.Out.WriteLine("Injecting worker {0} with a delay ...", id);
+            IWorkerService worker = getWorker(id);
+            worker.slowWorker(seconds);
+        }
+
+        public void freezeWorker(int id)
+        {
+            Console.Out.WriteLine("Freezing worker {0} ...", id);
+            IWorkerService worker = getWorker(id);
+            worker.freezeWorker();
+        }
+
+        public void unFreezeWorker(int id)
+        {
+            Console.Out.WriteLine("Unfreezing worker {0} ...", id);
+            IWorkerService worker = getWorker(id);
+            worker.unFreezeWorker();
         }
 
     }

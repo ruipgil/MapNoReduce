@@ -17,6 +17,7 @@ namespace PADIMapNoReduce
         private string _mapperName;
         private IWorkingWorkerService _worker;
         private ManualResetEvent _doneEvent;
+
         
         public ThreadWorker(IWorkingWorkerService worker, int item1, int item2, int splitNumber, string url, ManualResetEvent doneEvent, byte[] code, string mapperName)
         {
@@ -30,14 +31,22 @@ namespace PADIMapNoReduce
             _mapperName = mapperName;
         }
 
+        //add if freeze dont do thread
         public void ThreadPoolCallback(Object threadContext)
         {
+            
             int threadIndex = (int)threadContext;
-            Console.WriteLine("thread {0} started...", threadIndex);
-            _worker.work(_item1, _item2, _splitNumber, _url,_code,_mapperName);
-            Console.WriteLine("thread {0} result calculated...", threadIndex);
-            _doneEvent.Set();
+            if (!_worker.getFreeze())
+            {
+                Console.WriteLine("thread {0} started...", threadIndex);
+                _worker.work(_item1, _item2, _splitNumber, _url, _code, _mapperName);
+                Console.WriteLine("thread {0} result calculated...", threadIndex);
+                _doneEvent.Set();
+            }
+            else
+            {
+                Console.WriteLine("thread {0}: It's cold in here, i'm freezing!!! ",threadIndex);
+            }
         }
-
     }
 }
