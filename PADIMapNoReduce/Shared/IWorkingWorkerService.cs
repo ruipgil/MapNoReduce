@@ -11,14 +11,21 @@ namespace PADIMapNoReduce
     /// </summary>
     public interface IWorkingWorkerService : IWorkerService
     {
-        /// <summary>
-        /// Asks client for the values. Process them with the mapper and maps them with the mapper.
-        /// Sends the mapped values to the client.
-        /// </summary>
-        /// <param name="start">Start index (line)</param>
-        /// <param name="end">End index (line), exclusive</param>
-        /// <param name="split">The identifier of this split</param>
-        /// <param name="clientUrl">Client url</param>
-        void work(int start, int end, int split, string clientUrl, byte[] code,string mapperName);
+		void work(Split split);
+
+		/// <summary>
+		/// Heartbeats a worker, with the address of another worker.
+		/// If the worker is unknown it will be added to the known worker list of this instance.
+		/// If the worker is known, then it works like a heartbeat should. The lease time should be renewed.
+		/// 
+		/// The address could be removed if we could get the IP of the resquest.
+		/// </summary>
+		/// <param name="workerAddress">Worker's address.</param>
+		void heartbeat(string workerAddress);
+
+		void updateJob(Job job);
+		void newJob(Job job);
+		void completedSplit(Guid job, int splitId);
+		void completedJob(Guid job);
     }
 }

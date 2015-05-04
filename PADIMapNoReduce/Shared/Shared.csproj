@@ -46,6 +46,7 @@
     <Compile Include="IWorkerService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SampleMapper.cs" />
+    <Compile Include="Job.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="obj\Debug\DesignTimeResolveAssemblyReferencesInput.cache" />
