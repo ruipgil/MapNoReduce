@@ -17,23 +17,28 @@ namespace PADIMapNoReduce
         IWorkerService knownWorker;
         string knownWorkerUrl;
         bool hasKnownWorker = false;
+		string ownAddress;
 
 		List<string> fileContent;
         int lines;
         string outputFolder;
 
-        public ClientService(int port)
+        public ClientService(int port, string host)
         {
             TcpChannel channel = new TcpChannel(port);
             ChannelServices.RegisterChannel(channel, false);
             RemotingServices.Marshal(this, "C", typeof(ClientService));
+			ownAddress = @"tcp://"+host+":" + port + "/C";
         }
+
+		public ClientService(int port) : this(port, "localhost")
+		{
+		}
 
         public void init(string workerEntryUrl)
         {
             Console.Out.WriteLine("#init "+workerEntryUrl);
             knownWorkerUrl = workerEntryUrl;
-            //knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
         }
 
         public void submit(string inputFile, string outputFolder, int splits, byte[] code, string mapperName) // incomplete
@@ -48,7 +53,7 @@ namespace PADIMapNoReduce
             fileContent = new List<string>(File.ReadAllLines(inputFile));
             lines = fileContent.Count();
             Console.Out.WriteLine("\tlines:"+lines);
-            knownWorker.submit(lines, splits, code, mapperName);
+            knownWorker.submit(ownAddress, lines, splits, code, mapperName);
         }
 
         public List<string> get(int start, int end)

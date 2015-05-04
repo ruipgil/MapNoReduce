@@ -24,7 +24,10 @@ namespace PADIMapNoReduce
             byte[] code = System.IO.File.ReadAllBytes(IMapperPath);
             string mapperName = "SampleMapper";
             System.Console.WriteLine("Path on the way:" + IMapperPath);
-            client.submit(@"./input.txt", "./", 4, code, mapperName);
+			try {
+            	client.submit(@"./input.txt", "./", 4, code, mapperName);
+			} catch(Exception) {
+			}
             System.Console.ReadLine();
         }
     }
