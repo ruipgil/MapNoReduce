@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.Remoting;
+using System.Threading;
 
 namespace PADIMapNoReduce
 {
@@ -41,8 +42,8 @@ namespace PADIMapNoReduce
                     workerMap = (new List<string>(args)).GetRange(1, s);
                 }
             }
-            WorkingWorkerService inner = new WorkingWorkerService(port);
-            inner.updateWorkerMap(workerMap);
+            Tracker tracker = new Tracker(port);
+			tracker.addKnownWorkers (workerMap);
 
             Console.Out.WriteLine("I haver port: " + port);
             Console.Out.WriteLine("I know: ");
@@ -50,8 +51,20 @@ namespace PADIMapNoReduce
                 Console.Out.Write(worker + " ");
             }
             Console.Out.WriteLine(" ");
+
+			ThreadStart ts = new ThreadStart(() => {
+				while(true) {
+					tracker.startHeartbeating();
+					Thread.Sleep(2000);
+				}
+			});
+			Thread t = new Thread(ts);
+			t.Start();
+
+
             Console.Out.WriteLine("Press enter to close");
             Console.In.ReadLine();
+			t.Abort ();
         }
     }
 }
