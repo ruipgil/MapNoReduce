@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PADIMapNoReduce
 {
-	public class Utils
+	public class Async
 	{
 		public delegate void ExecMethod();
 		public static Thread ExecInThread(ExecMethod exec) {
@@ -14,7 +15,7 @@ namespace PADIMapNoReduce
 			return t;
 		}
 
-		public delegate void Each<T>(T elm);
+		public delegate void EachFn<T>(T elm);
 		/// <summary>
 		/// Executes a function at each element of a list.
 		/// Order NOT guaranteed.
@@ -23,11 +24,11 @@ namespace PADIMapNoReduce
 		/// <param name="list">List.</param>
 		/// <param name="each">Each.</param>
 		/// <typeparam name="T">The 1st type parameter.</typeparam>
-		public static void threadEachBlocking<T>(List<T> list, Each<T> each, int max) {
-			threadEach (list, each, max).Join();
+		public static void eachBlocking<T>(List<T> list, EachFn<T> each, int max) {
+			each<T> (list, each, max).ForEach (x => x.Join ());
 		}
-		public static void threadEachBlocking<T>(List<T> list, Each<T> each) {
-			threadEach (list, each, list.Count).Join();
+		public static void eachBlocking<T>(List<T> list, EachFn<T> each) {
+			each<T> (list, each, list.Count).ForEach (x => x.Join ());
 		}
 		/// <summary>
 		/// Similar to threadEachBlocking, but doesn't block the flow.
@@ -36,21 +37,18 @@ namespace PADIMapNoReduce
 		/// <param name="list">List.</param>
 		/// <param name="each">Each.</param>
 		/// <typeparam name="T">The 1st type parameter.</typeparam>
-		public static Thread threadEach<T>(List<T> list, Each<T> each, int max) {
-			ThreadStart ts = new ThreadStart(()=>{});
-			int count = list.Count;
-			for (var i=0; i<count; i++) {
-				var elm = list [i];
-				ts += (()=>{
-					each(elm);
-				});
+		public static List<Thread> each<T>(List<T> list, EachFn<T> each, int max) {
+			if (max > list.Count) {
+				max = list.Count;
 			}
-			Thread t = new Thread (ts);
-			t.Start ();
-			return t;
+			return list.GetRange(0, max).Select (x=>{
+				Thread t = new Thread(()=>each(x));
+				t.Start();
+				return t;
+			}).ToList();
 		}
-		public static Thread threadEach<T>(List<T> list, Each<T> each) {
-			return threadEach (list, each, list.Count);
+		public static List<Thread> each<T>(List<T> list, EachFn<T> each) {
+			return each<T> (list, each, list.Count);
 		}
 	}
 }

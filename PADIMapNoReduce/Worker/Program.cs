@@ -45,7 +45,6 @@ namespace PADIMapNoReduce
             Tracker tracker = new Tracker(port);
 			tracker.addKnownWorkers (workerMap);
 
-            Console.Out.WriteLine("I haver port: " + port);
             Console.Out.WriteLine("I know: ");
             foreach(string worker in workerMap){
                 Console.Out.Write(worker + " ");

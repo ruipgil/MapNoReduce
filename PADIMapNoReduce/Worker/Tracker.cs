@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting;
+using System.Threading;
 
 namespace PADIMapNoReduce
 {
@@ -17,6 +18,7 @@ namespace PADIMapNoReduce
 		List<Guid> completedJobs = new List<Guid>();
 		List<string> knownWorkers = new List<string> ();
 		Dictionary<string, IWorkingWorkerService> workersInstances = new Dictionary<string, IWorkingWorkerService>();
+		Dictionary<string, int> instanceLoad = new Dictionary<string, int> ();
 
 		public string ownAddress;
 
@@ -31,7 +33,7 @@ namespace PADIMapNoReduce
 			knownWorkers.Add (ownAddress);
 			workersInstances.Add (ownAddress, this);
 
-			Console.WriteLine("I've been created with the address '"+ownAddress+"'");
+			Console.WriteLine("Worker created at '"+ownAddress+"'");
 		}
 
 		public Tracker(int port) : this("tcp://localhost", port) {
@@ -79,7 +81,7 @@ namespace PADIMapNoReduce
 			}
 
 			var workersToDealWith = new List<string> ();
-			Utils.threadEachBlocking (toHeartbeat, (worker)=>{
+			Async.eachBlocking (toHeartbeat, (worker)=>{
 				try {
 					getWorker(worker).heartbeat(ownAddress);
 				} catch(RemotingException) {
@@ -94,6 +96,12 @@ namespace PADIMapNoReduce
 			removeWorkers (workersToDealWith);
 		}
 
+		/// <summary>
+		/// Removes workers from the known worker list.
+		/// It will check if any of these workers are coordinator. If any of them is, it will check
+		/// if this instance is next in line to take over the coordination of a job.
+		/// </summary>
+		/// <param name="workers">Workers.</param>
 		public void removeWorkers(List<string> workers) {
 			knownWorkers = knownWorkers.Except (workers).ToList();
 			Dictionary<Guid, Job> jobCoordinators = currentJobs.Where (x => workers.Contains (x.Value.coordinatorAddress)).ToDictionary(i=>i.Key, i=>i.Value);
@@ -152,11 +160,11 @@ namespace PADIMapNoReduce
 			job.workers = knownWorkers.ToList ();
 
 			// inform workers about this job
-			Utils.threadEachBlocking(job.workers.Where(x=>!x.Equals (ownAddress)).ToList(), (worker)=>{
+			Async.eachBlocking(job.workers.Where(x=>!x.Equals (ownAddress)).ToList(), (worker)=>{
 				getWorker(worker).newJob (job);
 			});
 
-			Utils.ExecInThread(() => startJob (job));
+			Async.ExecInThread(() => startJob (job));
 		}
 
 		public void startJob(Job job) {
@@ -167,7 +175,7 @@ namespace PADIMapNoReduce
 				Console.WriteLine ("Generated #"+splits.Count+" splits");
 				int split = 0;
 				while (job.nSplits > split) {
-					Utils.threadEachBlocking(job.workers.ToList(), (worker)=>{
+					Async.eachBlocking(job.workers.ToList(), (worker)=>{
 						Split s = splits[split++];
 						Console.WriteLine("! Attributing "+s+" to "+worker);
 						getWorker(worker).work (s);
@@ -175,7 +183,7 @@ namespace PADIMapNoReduce
 				}
 				Console.WriteLine ("The job "+job+" as finished!");
 
-				Utils.threadEachBlocking(job.workers.ToList(), (worker)=>{
+				Async.eachBlocking(job.workers.ToList(), (worker)=>{
 					getWorker(worker).completedJob(job.Uuid);
 				});
 			}catch(Exception e) {
@@ -188,6 +196,8 @@ namespace PADIMapNoReduce
 			var jobId = split.jobUuid;
 			Job job = currentJobs[jobId];
 
+			instanceLoad.Add (split.ToString(), split.upper-split.lower);
+
 			IMapper mapper = new SampleMapper ();
 
 			// get and process at the same time TODO
@@ -196,6 +206,8 @@ namespace PADIMapNoReduce
 				/* result */
 				mapper.Map (line);
 			}
+
+			instanceLoad.Remove (split.ToString());
 
 			Console.WriteLine ("%% Map phase of "+split+" ended");
 
@@ -210,6 +222,9 @@ namespace PADIMapNoReduce
 			return client.get (lower, upper);
 		}
 
+		public int GetLoad () {
+			return instanceLoad.Values.Sum ();
+		}
 	}
 }
 
