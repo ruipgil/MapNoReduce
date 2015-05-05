@@ -59,5 +59,63 @@ namespace PADIMapNoReduce
             _controller.runScript(inputFileTextBox.Text);
         }
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            _controller.getStatus();
+        }
+
+
+        private void label5_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void label4_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+        }
+
+        //Freeze Worker
+        private void button3_Click(object sender, EventArgs e)
+        {
+                _controller.freezeWorker(int.Parse(freezeWText.Text));  
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+               //TODO
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+                _controller.unFreezeWorker(int.Parse(unFreezeWText.Text)); 
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+                //TODO    
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+                _controller.slowWorker(int.Parse(slowIDText.Text), int.Parse(slowSeconds.Text));
+        }
+
+        private void label9_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label10_Click(object sender, EventArgs e)
+        {
+
+        }
+
     }
 }

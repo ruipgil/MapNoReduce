@@ -11,6 +11,17 @@ namespace PADIMapNoReduce
     /// </summary>
     public interface IWorkerService
     {
-        void submit(string clientAddress, int inputSize, int splits, byte[] code, string mapperName);
+        void submit(int inputSize, int splits, byte[] code, string mapperName);
+		/*
+        bool getFreeze();
+
+        void freezeWorker();
+
+        void unFreezeWorker();
+
+        void slowWorker(int seconds);
+
+        string getStatus();
+        */
     }
 }
