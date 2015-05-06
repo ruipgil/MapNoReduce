@@ -2,6 +2,8 @@
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace PADIMapNoReduce
 {
@@ -38,17 +40,59 @@ namespace PADIMapNoReduce
 		/// <param name="each">Each.</param>
 		/// <typeparam name="T">The 1st type parameter.</typeparam>
 		public static List<Thread> each<T>(List<T> list, EachFn<T> each, int max) {
+			Console.WriteLine (max+" - "+list.Count);
+
 			if (max > list.Count) {
 				max = list.Count;
 			}
+
+			/*if (list.Count == 0) {
+				return new List<Thread> () {
+					new Thread (() => {
+					})
+				};
+			}*/
+
 			return list.GetRange(0, max).Select (x=>{
-				Thread t = new Thread(()=>each(x));
+				Thread t = new Thread(()=>{
+					try {
+						each(x);
+					}catch(Exception e) {
+						Console.WriteLine(x);
+						Console.WriteLine("Error at each! "+max);
+						Console.WriteLine(e);
+					}
+				});
 				t.Start();
 				return t;
 			}).ToList();
 		}
 		public static List<Thread> each<T>(List<T> list, EachFn<T> each) {
 			return each<T> (list, each, list.Count);
+		}
+
+		/// <summary>
+		/// Same as eachLImit, but blocking.
+		/// </summary>
+		/// <param name="list">List.</param>
+		/// <param name="each">Each.</param>
+		/// <param name="limit">Limit.</param>
+		/// <typeparam name="T">The 1st type parameter.</typeparam>
+		public static void eachLimitBlocking<T>(List<T> list, Action<T> each, int limit) {
+			Parallel.ForEach (list,  new ParallelOptions { MaxDegreeOfParallelism = limit }, each);
+		}
+
+		/// <summary>
+		/// Runs a forEach parallel, that has a limit of how many parallel tasks there are.
+		/// </summary>
+		/// <param name="list">List.</param>
+		/// <param name="each">Each.</param>
+		/// <param name="limit">Limit.</param>
+		/// <typeparam name="T">The 1st type parameter.</typeparam>
+		public static void eachLimit<T>(List<T> list, Action<T> each, int limit) {
+			ExecInThread(()=>{
+				Parallel.ForEach (list,  new ParallelOptions { MaxDegreeOfParallelism = limit }, each);
+			});
 		}
 	}
 }

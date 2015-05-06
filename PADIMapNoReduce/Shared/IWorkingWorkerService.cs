@@ -23,9 +23,10 @@ namespace PADIMapNoReduce
 		/// <param name="workerAddress">Worker's address.</param>
 		void heartbeat(string workerAddress);
 
-		void updateJob(Job job);
-		void newJob(Job job);
+		/*void updateJob(Job job);
+		void newJob(Job job);*/
 		void completedSplit(Guid job, int splitId);
 		void completedJob(Guid job);
+		void announceJob(Job job);
     }
 }

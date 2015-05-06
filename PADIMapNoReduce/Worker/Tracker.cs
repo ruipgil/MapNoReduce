@@ -11,11 +11,6 @@ namespace PADIMapNoReduce
 	public class Tracker : MarshalByRefObject, IWorkerService, IWorkingWorkerService
 	{
 		Dictionary<Guid, Job> currentJobs = new Dictionary<Guid, Job> ();
-		/// <summary>
-		/// To support the failure of a worker just before a worker was able to send the completed job message.
-		/// In that case the workers may request directions to the new coordinator.
-		/// </summary>
-		List<Guid> completedJobs = new List<Guid>();
 		List<string> knownWorkers = new List<string> ();
 		Dictionary<string, IWorkingWorkerService> workersInstances = new Dictionary<string, IWorkingWorkerService>();
 		Dictionary<string, int> instanceLoad = new Dictionary<string, int> ();
@@ -30,7 +25,7 @@ namespace PADIMapNoReduce
 			ChannelServices.RegisterChannel(channel, false);
 			RemotingServices.Marshal(this, "W", typeof(Tracker));
 
-			knownWorkers.Add (ownAddress);
+			//knownWorkers.Add (ownAddress);
 			workersInstances.Add (ownAddress, this);
 
 			Console.WriteLine("Worker created at '"+ownAddress+"'");
@@ -49,6 +44,7 @@ namespace PADIMapNoReduce
 		/// <returns>The worker.</returns>
 		/// <param name="address">Address.</param>
 		public IWorkingWorkerService getWorker(string address) {
+			//Console.WriteLine ("Getting worker "+address);
 			if (workersInstances.ContainsKey (address)) {
 				return workersInstances [address];
 			} else {
@@ -104,13 +100,24 @@ namespace PADIMapNoReduce
 		/// <param name="workers">Workers.</param>
 		public void removeWorkers(List<string> workers) {
 			knownWorkers = knownWorkers.Except (workers).ToList();
-			Dictionary<Guid, Job> jobCoordinators = currentJobs.Where (x => workers.Contains (x.Value.coordinatorAddress)).ToDictionary(i=>i.Key, i=>i.Value);
+			//Console.WriteLine ("Known");
+			//knownWorkers.ForEach (Console.WriteLine);
 
-			foreach (var job in jobCoordinators) {
-				var aliveWorkers = job.Value.workers.Except (workers).ToList();
-				if (aliveWorkers.First().Equals(ownAddress)) {
-					takeOwnershipOfJob (job.Key);
-				}
+			var toTakeControl = currentJobs.Values.Where (job=>{
+				return workers.Contains(job.Coordinator) &&
+					job.Trackers.Except(knownWorkers).First().Equals(ownAddress);
+			}).ToList();
+
+			if (toTakeControl.Count < 1) {
+				return;
+			}
+
+			Console.WriteLine ("to take control:");
+			toTakeControl.ForEach (Console.WriteLine);
+			workers.ForEach (Console.WriteLine);
+
+			foreach (var job in toTakeControl) {
+				takeOwnershipOfJob (job);
 			}
 		}
 
@@ -119,32 +126,50 @@ namespace PADIMapNoReduce
 		/// Updates the job in all workers.
 		/// </summary>
 		/// <param name="jobUuid">Job id.</param>
-		public void takeOwnershipOfJob(Guid jobUuid) {
-			Console.WriteLine ("I'm taking ownership of "+jobUuid);
-			var job = currentJobs [jobUuid];
+		public void takeOwnershipOfJob(Job job) {
+			Console.WriteLine ("I'm taking ownership of "+job);
 
-			prepareStartJob (job);
+			var otherTrackers = job.Trackers;
+			otherTrackers.Remove (ownAddress);
+			job.Coordinator = ownAddress;
+			job.Trackers = getReliableTrackers();
+
+			Async.eachBlocking (job.Trackers.Union(otherTrackers).ToList(), (tracker) => {
+				Console.WriteLine ("Saying "+tracker+" to update "+job);
+				getWorker (tracker).announceJob (job);
+			});
+
+			Async.ExecInThread(() => startJob (job));
 		}
 
 		public void completedSplit(Guid job, int split) {
 			Console.WriteLine ("Completed split "+job+"#"+split);
-			currentJobs [job].splitCompleted (split);
+			if (currentJobs.ContainsKey (job)) {
+				currentJobs [job].splitCompleted (split);
+			}
 		}
 
 		public void completedJob(Guid job) {
 			Console.WriteLine ("Completed job! " + job);
-			completedJobs.Add (job);
 			currentJobs.Remove (job);
 		}
 
-		public void newJob(Job job) {
-			Console.WriteLine ("New job "+job);
-			currentJobs.Add(job.Uuid, job);
+		public void announceJob(Job job) {
+			Console.WriteLine ("Announced job "+job);
+			if (job.Trackers.Contains (ownAddress)) {
+				if (currentJobs.ContainsKey (job.Uuid)) {
+					currentJobs [job.Uuid] = job;
+				} else {
+					currentJobs.Add (job.Uuid, job);
+				}
+			} else if (currentJobs.ContainsKey (job.Uuid)) {
+				currentJobs.Remove (job.Uuid);
+			}
 		}
 
-		public void updateJob(Job job) {
-			Console.WriteLine ("Update job "+job);
-			currentJobs [job.Uuid] = job;
+		public List<string> getReliableTrackers() {
+			var list = knownWorkers.Where (w => w != ownAddress).ToList ();
+			return list.GetRange (0, list.Count > 0 ? 1 : 0);
 		}
 
 		public void submit(string clientAddress, int inputSize, int splits, byte[] code, string mapperName) {
@@ -152,73 +177,96 @@ namespace PADIMapNoReduce
 			Job job = new Job (ownAddress, clientAddress, inputSize, splits, mapperName, code);
 			currentJobs.Add (job.Uuid, job);
 
-			prepareStartJob (job);
-		}
+			job.Trackers = getReliableTrackers();
 
-		public void prepareStartJob(Job job) {
-			// should we be careful with the workers in here?
-			job.workers = knownWorkers.ToList ();
-
-			// inform workers about this job
-			Async.eachBlocking(job.workers.Where(x=>!x.Equals (ownAddress)).ToList(), (worker)=>{
-				getWorker(worker).newJob (job);
-			});
+			if (job.hasReplicas()) {
+				Async.eachBlocking (job.Trackers, (tracker) => {
+					Console.WriteLine ("Saying "+tracker+" about "+job);
+					getWorker (tracker).announceJob (job);
+				});
+			}
 
 			Async.ExecInThread(() => startJob (job));
 		}
 
+		public List<string> getWorkersByLoad() {
+			var list = knownWorkers.ToList ();
+			list.Add (ownAddress);
+			return list;
+		}
+
 		public void startJob(Job job) {
-			try {
-				Console.WriteLine ("Start job" + job);
+			Console.WriteLine (job.debugDump ());
 
-				List<Split> splits = job.generateSplits ();
-				Console.WriteLine ("Generated #"+splits.Count+" splits");
-				int split = 0;
-				while (job.nSplits > split) {
-					Async.eachBlocking(job.workers.ToList(), (worker)=>{
-						Split s = splits[split++];
-						Console.WriteLine("! Attributing "+s+" to "+worker);
+			Console.WriteLine ("Start job" + job);
+
+			List<Split> splits = job.generateSplits ();
+			Console.WriteLine ("Generated #"+splits.Count+" splits");
+
+			int split = 0;
+			while (splits.Count > split) {
+				var wList = getWorkersByLoad();
+				Async.eachBlocking(wList, (worker)=>{
+					Split s = splits[split++];
+					Console.WriteLine("! Attributing "+s+" to "+worker);
+					try {
 						getWorker(worker).work (s);
-					}, job.nSplits-split);
-				}
-				Console.WriteLine ("The job "+job+" as finished!");
-
-				Async.eachBlocking(job.workers.ToList(), (worker)=>{
-					getWorker(worker).completedJob(job.Uuid);
-				});
-			}catch(Exception e) {
-				Console.WriteLine (e);
+						// if the worker returns the worker doesn't need to receive completedSplit,
+						// sparing network traffic.
+						completedSplit(job.Uuid, s.id);
+					} catch(RemotingException e) {
+						// TODO remove worker?
+						Console.WriteLine("Remote error!");
+						Console.WriteLine(e);
+					} catch( Exception e) {
+						Console.WriteLine("...");
+						Console.WriteLine(e);
+					}
+				}, splits.Count-split);
 			}
+			Console.WriteLine ("The job "+job+" as finished!");
+
+			if( job.hasReplicas() ) {
+				// Doesn't need to be blocking?
+				Async.eachBlocking (job.Trackers, (tracker) => {
+					Console.WriteLine ("Saying "+tracker+" that "+job+" has finished!");
+					getWorker (tracker).completedJob (job.Uuid);
+				});
+			}
+
+			currentJobs.Remove (job.Uuid);
 		}
 
 		public void work(Split split) {
 			Console.WriteLine ("Starting split "+split);
-			var jobId = split.jobUuid;
-			Job job = currentJobs[jobId];
+			Job job = split.Job;
 
 			instanceLoad.Add (split.ToString(), split.upper-split.lower);
 
-			IMapper mapper = new SampleMapper ();
+			IMapper mapper = new ParadiseCountMapper ();
 
 			// get and process at the same time TODO
-			List<string> input = requestClient (job.clientAddress, split.lower, split.upper);
+			List<string> input = requestClient (job.Client, split.lower, split.upper);
+			var results = new List<IList<KeyValuePair<string, string>>> ();
 			foreach (var line in input) {
 				/* result */
-				mapper.Map (line);
+				results.Add(mapper.Map (line));
 			}
 
 			instanceLoad.Remove (split.ToString());
 
 			Console.WriteLine ("%% Map phase of "+split+" ended");
 
-			foreach (var worker in job.workers.ToList()) {
-				getWorker(worker).completedSplit (jobId, split.id);
-			}
+			Async.each (job.Trackers, (tracker) => {
+				Console.WriteLine ("Saying "+tracker+" that "+split+" has finished!");
+				getWorker (tracker).completedSplit (job.Uuid, split.id);
+			});
 		}
 
 		public List<string> requestClient(string clientAddress, int lower, int upper) {
 			Console.WriteLine ("Requested client "+clientAddress+" for values from "+lower+":"+upper);
 			var client = (IClientService)Activator.GetObject (typeof(IClientService), clientAddress);
+			Console.WriteLine (lower+" "+upper);
 			return client.get (lower, upper);
 		}
 

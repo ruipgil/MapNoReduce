@@ -60,7 +60,6 @@ namespace PADIMapNoReduce
 			Thread t = new Thread(ts);
 			t.Start();
 
-
             Console.Out.WriteLine("Press enter to close");
             Console.In.ReadLine();
 			t.Abort ();
