@@ -117,5 +117,21 @@ namespace PADIMapNoReduce
 
         }
 
+        private void step_Click(object sender, EventArgs e)
+        {
+            _controller.stepScript(inputFileTextBox.Text);
+        }
+
+        private void stop_Click(object sender, EventArgs e)
+        {
+            _controller.stopScript();
+        }
+
+        private void run_Click(object sender, EventArgs e)
+        {
+            String command = commandTextBox.Text;
+            _controller.runCommand(command);
+        }
+
     }
 }
