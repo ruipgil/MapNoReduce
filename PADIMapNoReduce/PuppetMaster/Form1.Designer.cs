@@ -34,7 +34,6 @@
             this.label2 = new System.Windows.Forms.Label();
             this.workerPort = new System.Windows.Forms.NumericUpDown();
             this.browseFolder = new System.Windows.Forms.Button();
-            this.inputFileTextBox = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.openInputFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.runScript = new System.Windows.Forms.Button();
@@ -57,12 +56,18 @@
             this.button7 = new System.Windows.Forms.Button();
             this.label10 = new System.Windows.Forms.Label();
             this.slowSeconds = new System.Windows.Forms.TextBox();
+            this.stepButton = new System.Windows.Forms.Button();
+            this.stopButton = new System.Windows.Forms.Button();
+            this.inputFileTextBox = new System.Windows.Forms.TextBox();
+            this.commandTextBox = new System.Windows.Forms.TextBox();
+            this.runButton = new System.Windows.Forms.Button();
+            this.label11 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.workerPort)).BeginInit();
             this.SuspendLayout();
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(274, 107);
+            this.button1.Location = new System.Drawing.Point(273, 143);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(98, 23);
             this.button1.TabIndex = 0;
@@ -72,7 +77,7 @@
             // 
             // otherText
             // 
-            this.otherText.Location = new System.Drawing.Point(90, 110);
+            this.otherText.Location = new System.Drawing.Point(89, 146);
             this.otherText.Name = "otherText";
             this.otherText.Size = new System.Drawing.Size(178, 20);
             this.otherText.TabIndex = 2;
@@ -80,7 +85,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 91);
+            this.label1.Location = new System.Drawing.Point(11, 127);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(64, 13);
             this.label1.TabIndex = 3;
@@ -90,7 +95,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(12, 113);
+            this.label2.Location = new System.Drawing.Point(11, 149);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(76, 13);
             this.label2.TabIndex = 4;
@@ -98,7 +103,7 @@
             // 
             // workerPort
             // 
-            this.workerPort.Location = new System.Drawing.Point(90, 84);
+            this.workerPort.Location = new System.Drawing.Point(89, 120);
             this.workerPort.Maximum = new decimal(new int[] {
             39999,
             0,
@@ -120,7 +125,7 @@
             // 
             // browseFolder
             // 
-            this.browseFolder.Location = new System.Drawing.Point(244, 31);
+            this.browseFolder.Location = new System.Drawing.Point(243, 12);
             this.browseFolder.Name = "browseFolder";
             this.browseFolder.Size = new System.Drawing.Size(35, 23);
             this.browseFolder.TabIndex = 6;
@@ -129,17 +134,10 @@
             this.browseFolder.UseVisualStyleBackColor = true;
             this.browseFolder.Click += new System.EventHandler(this.selectInputFile);
             // 
-            // inputFileTextBox
-            // 
-            this.inputFileTextBox.Location = new System.Drawing.Point(55, 31);
-            this.inputFileTextBox.Name = "inputFileTextBox";
-            this.inputFileTextBox.Size = new System.Drawing.Size(183, 20);
-            this.inputFileTextBox.TabIndex = 7;
-            // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(12, 34);
+            this.label3.Location = new System.Drawing.Point(11, 15);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(37, 13);
             this.label3.TabIndex = 8;
@@ -152,9 +150,9 @@
             // 
             // runScript
             // 
-            this.runScript.Location = new System.Drawing.Point(285, 31);
+            this.runScript.Location = new System.Drawing.Point(124, 38);
             this.runScript.Name = "runScript";
-            this.runScript.Size = new System.Drawing.Size(69, 23);
+            this.runScript.Size = new System.Drawing.Size(113, 23);
             this.runScript.TabIndex = 9;
             this.runScript.Text = "Run Script";
             this.runScript.UseVisualStyleBackColor = true;
@@ -162,7 +160,7 @@
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(90, 155);
+            this.button2.Location = new System.Drawing.Point(90, 169);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(75, 23);
             this.button2.TabIndex = 10;
@@ -173,7 +171,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(15, 160);
+            this.label5.Location = new System.Drawing.Point(15, 174);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(37, 13);
             this.label5.TabIndex = 12;
@@ -183,7 +181,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(15, 201);
+            this.label4.Location = new System.Drawing.Point(15, 211);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(91, 13);
             this.label4.TabIndex = 13;
@@ -192,7 +190,7 @@
             // 
             // freezeWText
             // 
-            this.freezeWText.Location = new System.Drawing.Point(155, 194);
+            this.freezeWText.Location = new System.Drawing.Point(155, 204);
             this.freezeWText.Name = "freezeWText";
             this.freezeWText.Size = new System.Drawing.Size(100, 20);
             this.freezeWText.TabIndex = 14;
@@ -200,7 +198,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(15, 222);
+            this.label6.Location = new System.Drawing.Point(15, 232);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(110, 13);
             this.label6.TabIndex = 15;
@@ -209,14 +207,14 @@
             // 
             // unFreezeWText
             // 
-            this.unFreezeWText.Location = new System.Drawing.Point(155, 238);
+            this.unFreezeWText.Location = new System.Drawing.Point(155, 248);
             this.unFreezeWText.Name = "unFreezeWText";
             this.unFreezeWText.Size = new System.Drawing.Size(100, 20);
             this.unFreezeWText.TabIndex = 16;
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(285, 191);
+            this.button3.Location = new System.Drawing.Point(285, 201);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(75, 23);
             this.button3.TabIndex = 17;
@@ -226,7 +224,7 @@
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(285, 213);
+            this.button4.Location = new System.Drawing.Point(285, 223);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(75, 23);
             this.button4.TabIndex = 18;
@@ -237,7 +235,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(15, 245);
+            this.label7.Location = new System.Drawing.Point(15, 255);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(105, 13);
             this.label7.TabIndex = 19;
@@ -246,7 +244,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(15, 267);
+            this.label8.Location = new System.Drawing.Point(15, 277);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(124, 13);
             this.label8.TabIndex = 20;
@@ -254,21 +252,21 @@
             // 
             // freezeJTText
             // 
-            this.freezeJTText.Location = new System.Drawing.Point(155, 216);
+            this.freezeJTText.Location = new System.Drawing.Point(155, 226);
             this.freezeJTText.Name = "freezeJTText";
             this.freezeJTText.Size = new System.Drawing.Size(100, 20);
             this.freezeJTText.TabIndex = 21;
             // 
             // unFreezeJTText
             // 
-            this.unFreezeJTText.Location = new System.Drawing.Point(155, 260);
+            this.unFreezeJTText.Location = new System.Drawing.Point(155, 270);
             this.unFreezeJTText.Name = "unFreezeJTText";
             this.unFreezeJTText.Size = new System.Drawing.Size(100, 20);
             this.unFreezeJTText.TabIndex = 22;
             // 
             // button5
             // 
-            this.button5.Location = new System.Drawing.Point(285, 235);
+            this.button5.Location = new System.Drawing.Point(285, 245);
             this.button5.Name = "button5";
             this.button5.Size = new System.Drawing.Size(75, 23);
             this.button5.TabIndex = 23;
@@ -278,7 +276,7 @@
             // 
             // button6
             // 
-            this.button6.Location = new System.Drawing.Point(285, 257);
+            this.button6.Location = new System.Drawing.Point(285, 267);
             this.button6.Name = "button6";
             this.button6.Size = new System.Drawing.Size(75, 23);
             this.button6.TabIndex = 24;
@@ -330,11 +328,69 @@
             this.slowSeconds.Size = new System.Drawing.Size(55, 20);
             this.slowSeconds.TabIndex = 29;
             // 
+            // stepButton
+            // 
+            this.stepButton.Location = new System.Drawing.Point(285, 12);
+            this.stepButton.Name = "stepButton";
+            this.stepButton.Size = new System.Drawing.Size(43, 23);
+            this.stepButton.TabIndex = 30;
+            this.stepButton.Text = "Step";
+            this.stepButton.UseVisualStyleBackColor = true;
+            this.stepButton.Click += new System.EventHandler(this.step_Click);
+            // 
+            // stopButton
+            // 
+            this.stopButton.Location = new System.Drawing.Point(334, 12);
+            this.stopButton.Name = "stopButton";
+            this.stopButton.Size = new System.Drawing.Size(44, 23);
+            this.stopButton.TabIndex = 31;
+            this.stopButton.Text = "Stop";
+            this.stopButton.UseVisualStyleBackColor = true;
+            this.stopButton.Click += new System.EventHandler(this.stop_Click);
+            // 
+            // inputFileTextBox
+            // 
+            this.inputFileTextBox.Location = new System.Drawing.Point(54, 12);
+            this.inputFileTextBox.Name = "inputFileTextBox";
+            this.inputFileTextBox.Size = new System.Drawing.Size(183, 20);
+            this.inputFileTextBox.TabIndex = 7;
+            // 
+            // commandTextBox
+            // 
+            this.commandTextBox.Location = new System.Drawing.Point(74, 69);
+            this.commandTextBox.Name = "commandTextBox";
+            this.commandTextBox.Size = new System.Drawing.Size(213, 20);
+            this.commandTextBox.TabIndex = 32;
+            // 
+            // runButton
+            // 
+            this.runButton.Location = new System.Drawing.Point(294, 67);
+            this.runButton.Name = "runButton";
+            this.runButton.Size = new System.Drawing.Size(75, 23);
+            this.runButton.TabIndex = 33;
+            this.runButton.Text = "Run";
+            this.runButton.UseVisualStyleBackColor = true;
+            this.runButton.Click += new System.EventHandler(this.run_Click);
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(11, 70);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(57, 13);
+            this.label11.TabIndex = 34;
+            this.label11.Text = "Command:";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(381, 336);
+            this.Controls.Add(this.label11);
+            this.Controls.Add(this.runButton);
+            this.Controls.Add(this.commandTextBox);
+            this.Controls.Add(this.stopButton);
+            this.Controls.Add(this.stepButton);
             this.Controls.Add(this.slowSeconds);
             this.Controls.Add(this.label10);
             this.Controls.Add(this.button7);
@@ -380,7 +436,6 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.NumericUpDown workerPort;
         private System.Windows.Forms.Button browseFolder;
-        private System.Windows.Forms.TextBox inputFileTextBox;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.OpenFileDialog openInputFileDialog;
         private System.Windows.Forms.Button runScript;
@@ -403,6 +458,12 @@
         private System.Windows.Forms.Button button7;
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.TextBox slowSeconds;
+        private System.Windows.Forms.Button stepButton;
+        private System.Windows.Forms.Button stopButton;
+        private System.Windows.Forms.TextBox inputFileTextBox;
+        private System.Windows.Forms.TextBox commandTextBox;
+        private System.Windows.Forms.Button runButton;
+        private System.Windows.Forms.Label label11;
     }
 }
 
