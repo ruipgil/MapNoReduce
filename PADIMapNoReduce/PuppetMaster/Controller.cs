@@ -185,13 +185,12 @@ namespace PADIMapNoReduce
 
         public void getStatus()
         {
-           /* Console.Out.WriteLine("Obtaining the workers and job trackers status");
-            Console.Out.WriteLine("Status:");
+            Console.Out.WriteLine("Obtaining the workers and job trackers status");
             foreach (KeyValuePair<int, string> pair in workerIds)
             {
                 IWorkerService worker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), pair.Value);
-                Console.WriteLine("Worker {0} : {1} ", pair.Key, worker.getStatus());
-            }*/
+                worker.getStatus();
+            }
         }
 
         public IWorkerService getWorker(int id)

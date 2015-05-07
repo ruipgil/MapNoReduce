@@ -21,7 +21,7 @@ namespace PADIMapNoReduce
 
         void slowWorker(int seconds);
 
-        string getStatus();
+        void getStatus();
         
     }
 }

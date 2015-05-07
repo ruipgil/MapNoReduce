@@ -372,9 +372,22 @@ namespace PADIMapNoReduce
             return freeze;
         }
         
-        public string getStatus()
+        public void getStatus()
         {
-            return "";
+            String properties = " Job Tracker: " + jt + " Failing: "+freeze+"\n";
+            String kw = " Known Workers: ";
+            foreach (String w in knownWorkers)
+            {
+                kw += w + " ";
+            }
+            kw += "\n";
+            String jobs = " On going jobs: ";
+            foreach(KeyValuePair<Guid,Job> j in currentJobs)
+            {
+                jobs += j.Key + " ";
+            }
+            jobs += "\n";
+            Console.WriteLine("STATUS:\n" + properties + kw + jobs );
         }
 	}
 }
