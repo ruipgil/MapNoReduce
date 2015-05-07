@@ -72,7 +72,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void startHeartbeating() {
-            //Disables communication if worker freezed.
+            //Disables communication if worker is freezed.
             if (freeze)
             {
                 return;
@@ -227,13 +227,10 @@ namespace PADIMapNoReduce
 					Split s = splits[split++];
 					Console.WriteLine("! Attributing "+s+" to "+worker);
 					try {
-						if(!getWorker(worker).isFreezed())
-                        {
                             getWorker(worker).work (s);
 						    // if the worker returns the worker doesn't need to receive completedSplit,
 						    // sparing network traffic.
 						    completedSplit(job.Uuid, s.id);
-                        }
 					} catch(RemotingException e) {
 						// TODO remove worker?
 						Console.WriteLine("Remote error!");
@@ -259,11 +256,16 @@ namespace PADIMapNoReduce
 
 		public void work(Split split) {
             
+            //simulates worker slowing down 
             if (slow != 0)
             {
                 Console.WriteLine("Falling asleep {0} milliseconds ....", slow);
                 Thread.Sleep(slow);
             }
+
+            //Simulates worker freezing
+            while (freeze && !jt);
+
 
             Console.WriteLine ("Starting split "+split);
 			Job job = split.Job;
