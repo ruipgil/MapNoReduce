@@ -26,11 +26,15 @@ namespace PADIMapNoReduce
 		/// <param name="list">List.</param>
 		/// <param name="each">Each.</param>
 		/// <typeparam name="T">The 1st type parameter.</typeparam>
-		public static void eachBlocking<T>(List<T> list, EachFn<T> each, int max) {
-			each<T> (list, each, max).ForEach (x => x.Join ());
+		public static List<Thread> eachBlocking<T>(List<T> list, EachFn<T> each, int max) {
+			var t = each<T> (list, each, max);
+			t.ForEach (x => x.Join ());
+			return t;
 		}
-		public static void eachBlocking<T>(List<T> list, EachFn<T> each) {
-			each<T> (list, each, list.Count).ForEach (x => x.Join ());
+		public static List<Thread> eachBlocking<T>(List<T> list, EachFn<T> each) {
+			var t = each<T> (list, each, list.Count);
+			t.ForEach (x => x.Join ());
+			return t;
 		}
 		/// <summary>
 		/// Similar to threadEachBlocking, but doesn't block the flow.
@@ -46,12 +50,12 @@ namespace PADIMapNoReduce
 
 			return list.GetRange(0, max).Select (x=>{
 				Thread t = new Thread(()=>{
-					try {
+					//try {
 						each(x);
-					}catch(Exception e) {
-						Console.WriteLine("Error at each!");
-						Console.WriteLine(e);
-					}
+					//}catch(Exception e) {
+					//	Console.WriteLine("Error at each!");
+					//	Console.WriteLine(e);
+					//}
 				});
 				t.Start();
 				return t;
