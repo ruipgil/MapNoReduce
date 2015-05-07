@@ -14,6 +14,10 @@ namespace PADIMapNoReduce
 		List<string> knownWorkers = new List<string> ();
 		Dictionary<string, IWorkingWorkerService> workersInstances = new Dictionary<string, IWorkingWorkerService>();
 		Dictionary<string, int> instanceLoad = new Dictionary<string, int> ();
+		//Dictionary<string, List<Thread>> executingSplits = new Dictionary<string, List<Thread>>();
+
+		int MAX_TRANSFER_MB = 1;
+		int N_PARALLEL = 1;
 
 		public string ownAddress;
 
@@ -68,12 +72,15 @@ namespace PADIMapNoReduce
 
 		public void startHeartbeating() {
 			
-			List<string> toHeartbeat = currentJobs.Values.Where (elm=>{
-				return !elm.Coordinator.Equals(ownAddress);
-			}).Select(elm=>elm.Coordinator).ToList();//knownWorkers.ToList ();
+			List<string> toHeartbeat = new List<string> ();
+			foreach (var job in currentJobs.Values) {
+				toHeartbeat.Add (job.Coordinator);
+				toHeartbeat.AddRange (job.Trackers);
+			}
+			toHeartbeat = toHeartbeat.Distinct ().ToList ();
 			toHeartbeat.Remove (ownAddress);
 
-			Console.WriteLine (" # Heartbeat ["+toHeartbeat.Count+"] "+string.Join (" ", toHeartbeat.ToArray()));
+			//Console.WriteLine (" # Heartbeat ["+toHeartbeat.Count+"] "+string.Join (" ", toHeartbeat.ToArray()));
 			if (toHeartbeat.Count < 1) {
 				return;
 			}
@@ -83,7 +90,7 @@ namespace PADIMapNoReduce
 				try {
 					getWorker(worker).heartbeat(ownAddress);
 				} catch(RemotingException) {
-					Console.WriteLine ("# A worker is down: "+worker);
+					//Console.WriteLine ("# A worker is down: "+worker);
 					workersToDealWith.Add (worker);
 				} catch(Exception e) {
 					Console.WriteLine ("Error!");
@@ -102,8 +109,6 @@ namespace PADIMapNoReduce
 		/// <param name="workers">Workers.</param>
 		public void removeWorkers(List<string> workers) {
 			knownWorkers = knownWorkers.Except (workers).ToList();
-			//Console.WriteLine ("Known");
-			//knownWorkers.ForEach (Console.WriteLine);
 
 			var toTakeControl = currentJobs.Values.Where (job=>{
 				return workers.Contains(job.Coordinator) &&
@@ -114,12 +119,30 @@ namespace PADIMapNoReduce
 				return;
 			}
 
-			Console.WriteLine ("to take control:");
-			toTakeControl.ForEach (Console.WriteLine);
-			workers.ForEach (Console.WriteLine);
-
 			foreach (var job in toTakeControl) {
 				takeOwnershipOfJob (job);
+			}
+
+			var toCreateReplica = currentJobs.Values.Where (job=>{
+				return job.Trackers.Except(knownWorkers).Count() == 0;
+			}).ToList();
+
+			foreach (var job in toCreateReplica) {
+				assignReplica (job);
+			}
+		}
+
+		public void removeWorkers(string worker) {
+			removeWorkers (new List<string> (){ worker });
+		}
+
+		public void assignReplica(Job job) {
+			job.Trackers = getReliableTrackers ();
+			if (job.Trackers.Count > 0) {
+				Async.eachBlocking (job.Trackers.ToList (), (tracker) => {
+					Console.WriteLine ("Saying " + tracker + " to update " + job);
+					getWorker (tracker).announceJob (job);
+				});
 			}
 		}
 
@@ -134,12 +157,8 @@ namespace PADIMapNoReduce
 			var otherTrackers = job.Trackers;
 			otherTrackers.Remove (ownAddress);
 			job.Coordinator = ownAddress;
-			job.Trackers = getReliableTrackers();
 
-			Async.eachBlocking (job.Trackers.Union(otherTrackers).ToList(), (tracker) => {
-				Console.WriteLine ("Saying "+tracker+" to update "+job);
-				getWorker (tracker).announceJob (job);
-			});
+			assignReplica (job);
 
 			Async.ExecInThread(() => startJob (job));
 		}
@@ -179,14 +198,7 @@ namespace PADIMapNoReduce
 			Job job = new Job (ownAddress, clientAddress, inputSize, fileSize, splits, mapperName, code);
 			currentJobs.Add (job.Uuid, job);
 
-			job.Trackers = getReliableTrackers();
-
-			if (job.hasReplicas()) {
-				Async.eachBlocking (job.Trackers, (tracker) => {
-					Console.WriteLine ("Saying "+tracker+" about "+job);
-					getWorker (tracker).announceJob (job);
-				});
-			}
+			assignReplica (job);
 
 			Async.ExecInThread(() => startJob (job));
 		}
@@ -202,40 +214,42 @@ namespace PADIMapNoReduce
 
 			Console.WriteLine ("Start job" + job);
 
-			List<Split> splits = job.generateSplits ();
+			Queue<Split> splits = new Queue<Split>(job.generateSplits ());
 			Console.WriteLine ("Generated #"+splits.Count+" splits");
 
-			int split = 0;
-			int toComplete = splits.Count;
-			while (splits.Count > split) {
+			while (splits.Count>0) {
 				var wList = getWorkersByLoad();
 				Async.eachBlocking(wList, (worker)=>{
-					Split s = splits[split++];
+					Split s = splits.Dequeue();
 					Console.WriteLine("! Attributing "+s+" to "+worker);
 					try {
+						
 						getWorker(worker).work (s);
 						// if the worker returns the worker doesn't need to receive completedSplit,
 						// sparing network traffic.
 						completedSplit(job.Uuid, s.id);
-					} catch(RemotingException e) {
-						// TODO remove worker?
-						Console.WriteLine("Remote error!");
-						Console.WriteLine(e);
-					} catch( Exception e) {
-						Console.WriteLine("...");
+					} catch(RemotingException) {
+						splits.Enqueue(s);
+						removeWorkers(worker);
+					} catch(Exception e) {
 						Console.WriteLine(e);
 					}
-				}, splits.Count-split);
+				}, splits.Count);
 			}
 			Console.WriteLine ("The job "+job+" as finished!");
 
 			if( job.hasReplicas() ) {
-				// Doesn't need to be blocking?
 				Async.eachBlocking (job.Trackers, (tracker) => {
 					Console.WriteLine ("Saying "+tracker+" that "+job+" has finished!");
-					getWorker (tracker).completedJob (job.Uuid);
+					try {
+						getWorker (tracker).completedJob (job.Uuid);
+					} catch(RemotingException) {
+						removeWorkers(tracker);
+					}
 				});
 			}
+
+			// TODO: signal client
 
 			currentJobs.Remove (job.Uuid);
 		}
@@ -243,6 +257,8 @@ namespace PADIMapNoReduce
 		public void work(Split split) {
 			Console.WriteLine ("Starting split "+split);
 			Job job = split.Job;
+
+			Thread.Sleep(5000);
 
 			instanceLoad.Add (split.ToString(), split.upper-split.lower);
 
@@ -262,7 +278,11 @@ namespace PADIMapNoReduce
 
 				Async.each (job.Trackers, (tracker) => {
 					Console.WriteLine ("Saying "+tracker+" that "+split+" has finished!");
-					getWorker (tracker).completedSplit (job.Uuid, split.id);
+					try {
+						getWorker (tracker).completedSplit (job.Uuid, split.id);
+					} catch(RemotingException) {
+						removeWorkers(new List<string>(){ tracker });
+					}
 				});
 			});
 		}
@@ -276,25 +296,21 @@ namespace PADIMapNoReduce
 			var averagePerLine = size / (float)totalLines;
 			var predictedSize = lines * averagePerLine;
 
-			int MAX_TRANSFER_MB = 1;
 			long MAX_TRANSFERSIZE = MAX_TRANSFER_MB * 1000 * 1000;
 
 			var ns = Math.Ceiling(predictedSize/(double)MAX_TRANSFERSIZE);
 			var t = lines / (int)ns;
 			var last = s.lower;
 			var chunks = new List<Tuple<int, int>> ();
-			//Console.WriteLine ("File size: "+size+"\nLines: "+totalLines+" MAX: "+MAX_TRANSFERSIZE+"\nAverageSize: "+averagePerLine+"\nPredictedSize: "+predictedSize+"\nns: "+ns+"\nt: "+t);
 			for (var i = 0; i < ns; i++) {
 				var m = last + t;
 				chunks.Add(new Tuple<int, int>(last, m));
-				//Console.WriteLine (last+"-"+m);
 				last = m;
 			}
 			if (last != s.upper) {
 				chunks.Add (new Tuple<int, int>(s.lower, s.upper));
 			}
 
-			var N_PARALLEL = 1;
 			var executed = 0;
 			Async.eachLimitBlocking (chunks, (chunk)=>{
 				var result = requestClient (clientAddress, chunk.Item1, chunk.Item2);
