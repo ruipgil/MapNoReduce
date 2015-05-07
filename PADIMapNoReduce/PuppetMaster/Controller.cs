@@ -132,19 +132,19 @@ namespace PADIMapNoReduce
             }
             if (splits[0].Equals("FREEZEW"))
             {
-                freezeWorker(int.Parse(splits[1]));
+                freezeWorkerW(int.Parse(splits[1]));
             }
             if (splits[0].Equals("UNFREEZEW"))
             {
-                unFreezeWorker(int.Parse(splits[1]));
+                unFreezeWorkerW(int.Parse(splits[1]));
             }
             if (splits[0].Equals("FREEZEC"))
             {
-                //call freeze with job tracker id
+                freezeWorkerC(int.Parse(splits[1]));
             }
             if (splits[0].Equals("UNFREEZEC"))
             {
-                // call unfreeze with job tracker id
+                freezeWorkerC(int.Parse(splits[1]));
             }
         }
 
@@ -185,13 +185,13 @@ namespace PADIMapNoReduce
 
         public void getStatus()
         {
-            Console.Out.WriteLine("Obtaining the workers and job trackers status");
+           /* Console.Out.WriteLine("Obtaining the workers and job trackers status");
             Console.Out.WriteLine("Status:");
             foreach (KeyValuePair<int, string> pair in workerIds)
             {
                 IWorkerService worker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), pair.Value);
                 Console.WriteLine("Worker {0} : {1} ", pair.Key, worker.getStatus());
-            }
+            }*/
         }
 
         public IWorkerService getWorker(int id)
@@ -216,18 +216,44 @@ namespace PADIMapNoReduce
             worker.slowWorker(seconds);
         }
 
-        public void freezeWorker(int id)
+        public void freezeWorkerW(int id)
         {
             Console.Out.WriteLine("Freezing worker {0} ...", id);
             IWorkerService worker = getWorker(id);
-            worker.freezeWorker();
+            if (!worker.isJobTracker())
+            {
+                worker.freezeWorker();
+            }
         }
 
-        public void unFreezeWorker(int id)
+        public void unFreezeWorkerW(int id)
         {
             Console.Out.WriteLine("Unfreezing worker {0} ...", id);
             IWorkerService worker = getWorker(id);
-            worker.unFreezeWorker();
+            if (!worker.isJobTracker())
+            {
+                worker.unFreezeWorker();
+            }
+        }
+
+        public void freezeWorkerC(int id)
+        {
+            Console.Out.WriteLine("Freezing worker {0} ...", id);
+            IWorkerService worker = getWorker(id);
+            if (worker.isJobTracker())
+            {
+                worker.freezeWorker();
+            }
+        }
+
+        public void unFreezeWorkerC(int id)
+        {
+            Console.Out.WriteLine("Unfreezing worker {0} ...", id);
+            IWorkerService worker = getWorker(id);
+            if (worker.isJobTracker())
+            {
+                worker.unFreezeWorker();
+            }
         }
 
     }

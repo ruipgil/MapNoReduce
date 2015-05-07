@@ -16,6 +16,11 @@ namespace PADIMapNoReduce
 		Dictionary<string, int> instanceLoad = new Dictionary<string, int> ();
 
 		public string ownAddress;
+        
+        //milliseconds
+        private int slow = 0;
+        private bool freeze = false;
+        private bool jt = false;
 
 		public Tracker (string myAddress, int port)
 		{
@@ -67,6 +72,11 @@ namespace PADIMapNoReduce
 		}
 
 		public void startHeartbeating() {
+            //Disables communication if worker freezed.
+            if (freeze)
+            {
+                return;
+            }
 			
 			List<string> toHeartbeat = currentJobs.Values.Where (elm=>{
 				return !elm.Coordinator.Equals(ownAddress);
@@ -175,7 +185,10 @@ namespace PADIMapNoReduce
 		}
 
 		public void submit(string clientAddress, int inputSize, long fileSize,  int splits, byte[] code, string mapperName) {
-			Console.WriteLine ("Submit "+clientAddress+", "+inputSize+", "+splits+", ..., "+mapperName);
+			//receives a submit, therefore the job tracker
+            jt = true;
+            
+            Console.WriteLine ("Submit "+clientAddress+", "+inputSize+", "+splits+", ..., "+mapperName);
 			Job job = new Job (ownAddress, clientAddress, inputSize, fileSize, splits, mapperName, code);
 			currentJobs.Add (job.Uuid, job);
 
@@ -198,7 +211,8 @@ namespace PADIMapNoReduce
 		}
 
 		public void startJob(Job job) {
-			Console.WriteLine (job.debugDump ());
+            
+            Console.WriteLine (job.debugDump ());
 
 			Console.WriteLine ("Start job" + job);
 
@@ -213,10 +227,13 @@ namespace PADIMapNoReduce
 					Split s = splits[split++];
 					Console.WriteLine("! Attributing "+s+" to "+worker);
 					try {
-						getWorker(worker).work (s);
-						// if the worker returns the worker doesn't need to receive completedSplit,
-						// sparing network traffic.
-						completedSplit(job.Uuid, s.id);
+						if(!getWorker(worker).isFreezed())
+                        {
+                            getWorker(worker).work (s);
+						    // if the worker returns the worker doesn't need to receive completedSplit,
+						    // sparing network traffic.
+						    completedSplit(job.Uuid, s.id);
+                        }
 					} catch(RemotingException e) {
 						// TODO remove worker?
 						Console.WriteLine("Remote error!");
@@ -241,12 +258,19 @@ namespace PADIMapNoReduce
 		}
 
 		public void work(Split split) {
-			Console.WriteLine ("Starting split "+split);
+            
+            if (slow != 0)
+            {
+                Console.WriteLine("Falling asleep {0} milliseconds ....", slow);
+                Thread.Sleep(slow);
+            }
+
+            Console.WriteLine ("Starting split "+split);
 			Job job = split.Job;
 
 			instanceLoad.Add (split.ToString(), split.upper-split.lower);
 
-			IMapper mapper = new ParadiseCountMapper ();
+			IMapper mapper = new SampleMapper ();
 
 			var results = new List<IList<KeyValuePair<string, string>>> ();
 
@@ -318,6 +342,38 @@ namespace PADIMapNoReduce
 		public int GetLoad () {
 			return instanceLoad.Values.Sum ();
 		}
+
+        public void slowWorker(int seconds)
+        {
+            Console.WriteLine("Worker is slowing down {0} seconds ...", seconds);
+            slow = seconds * 1000;
+
+        }
+
+        public void freezeWorker()
+        {
+            freeze = true;
+        }
+
+        public void unFreezeWorker()
+        {
+            freeze = false;
+        }
+
+        public bool isJobTracker()
+        {
+            return jt;
+        }
+
+        public bool isFreezed()
+        {
+            return freeze;
+        }
+        
+        public string getStatus()
+        {
+            return "";
+        }
 	}
 }
 
