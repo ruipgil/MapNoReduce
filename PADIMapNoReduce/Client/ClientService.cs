@@ -49,11 +49,14 @@ namespace PADIMapNoReduce
                 hasKnownWorker = true;
             }
             this.outputFolder = outputFolder;
+			FileInfo info = new FileInfo (inputFile);
+			float fileSize = info.Length/(1000f*1000f);
+
             Console.Out.WriteLine("#submiting");
             fileContent = new List<string>(File.ReadAllLines(inputFile));
             lines = fileContent.Count();
             Console.Out.WriteLine("\tlines:"+lines);
-            knownWorker.submit(ownAddress, lines, splits, code, mapperName);
+			knownWorker.submit(ownAddress, lines, info.Length, splits, code, mapperName);
         }
 
         public List<string> get(int start, int end)

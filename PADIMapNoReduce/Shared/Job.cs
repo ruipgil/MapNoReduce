@@ -10,7 +10,7 @@ namespace PADIMapNoReduce
 
 		private int nSplits;
 		private int inputSize;
-		private int inputSizeBytes;
+		private long fileSize;
 		private List<int> splitsCompleted = new List<int>();
 
 		private string mapperName;
@@ -20,7 +20,7 @@ namespace PADIMapNoReduce
 		private string coordinatorAddress;
 		private List<string> trackers = new List<string>();
 
-		public Job(string coordinatorAddress, string clientAddress, int inputSize, int nSplits, string mapperName, byte[] mapperCode) {
+		public Job(string coordinatorAddress, string clientAddress, int inputSize, long fileSize, int nSplits, string mapperName, byte[] mapperCode) {
 			uuid = System.Guid.NewGuid ();
 			this.coordinatorAddress = coordinatorAddress;
 			this.clientAddress = clientAddress;
@@ -28,6 +28,7 @@ namespace PADIMapNoReduce
 			this.nSplits = nSplits;
 			this.mapperName = mapperName;
 			this.mapperCode = mapperCode;
+			this.fileSize = fileSize;
 		}
 
 		public Guid Uuid { get { return uuid; } }
@@ -43,7 +44,7 @@ namespace PADIMapNoReduce
 
 		public int NSplits { get { return nSplits; } }
 		public int InputSize { get { return inputSize; } }
-		public int InputSizeBytes { get { return InputSizeBytes; } }
+		public long InputSizeBytes { get { return fileSize; } }
 
 		public string MapperName { get { return mapperName; } }
 		public byte[] MapperCode { get { return mapperCode; } }
