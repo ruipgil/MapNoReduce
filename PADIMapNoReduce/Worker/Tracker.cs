@@ -68,10 +68,12 @@ namespace PADIMapNoReduce
 
 		public void startHeartbeating() {
 			
-			List<string> toHeartbeat = knownWorkers.ToList ();
+			List<string> toHeartbeat = currentJobs.Values.Where (elm=>{
+				return !elm.Coordinator.Equals(ownAddress);
+			}).Select(elm=>elm.Coordinator).ToList();//knownWorkers.ToList ();
 			toHeartbeat.Remove (ownAddress);
 
-			//Console.WriteLine (" # Heartbeat ["+toHeartbeat.Count+"] "+string.Join (" ", toHeartbeat.ToArray()));
+			Console.WriteLine (" # Heartbeat ["+toHeartbeat.Count+"] "+string.Join (" ", toHeartbeat.ToArray()));
 			if (toHeartbeat.Count < 1) {
 				return;
 			}
@@ -172,9 +174,9 @@ namespace PADIMapNoReduce
 			return list.GetRange (0, list.Count > 0 ? 1 : 0);
 		}
 
-		public void submit(string clientAddress, int inputSize, int splits, byte[] code, string mapperName) {
+		public void submit(string clientAddress, int inputSize, long fileSize,  int splits, byte[] code, string mapperName) {
 			Console.WriteLine ("Submit "+clientAddress+", "+inputSize+", "+splits+", ..., "+mapperName);
-			Job job = new Job (ownAddress, clientAddress, inputSize, splits, mapperName, code);
+			Job job = new Job (ownAddress, clientAddress, inputSize, fileSize, splits, mapperName, code);
 			currentJobs.Add (job.Uuid, job);
 
 			job.Trackers = getReliableTrackers();
@@ -204,6 +206,7 @@ namespace PADIMapNoReduce
 			Console.WriteLine ("Generated #"+splits.Count+" splits");
 
 			int split = 0;
+			int toComplete = splits.Count;
 			while (splits.Count > split) {
 				var wList = getWorkersByLoad();
 				Async.eachBlocking(wList, (worker)=>{
@@ -245,22 +248,64 @@ namespace PADIMapNoReduce
 
 			IMapper mapper = new ParadiseCountMapper ();
 
-			// get and process at the same time TODO
-			List<string> input = requestClient (job.Client, split.lower, split.upper);
 			var results = new List<IList<KeyValuePair<string, string>>> ();
-			foreach (var line in input) {
-				/* result */
-				results.Add(mapper.Map (line));
+
+			// get and process at the same time TODO
+			requestClient (job.Client, split, (subSplitResult)=>{
+				foreach(var line in subSplitResult) {
+					results.Add(mapper.Map (line));
+				}
+			}, ()=>{
+				instanceLoad.Remove (split.ToString());
+
+				Console.WriteLine ("%% Map phase of "+split+" ended");
+
+				Async.each (job.Trackers, (tracker) => {
+					Console.WriteLine ("Saying "+tracker+" that "+split+" has finished!");
+					getWorker (tracker).completedSplit (job.Uuid, split.id);
+				});
+			});
+		}
+
+		public void requestClient(string clientAddress, Split s, Action<List<string>> exec, Action onEnd) {
+			Console.WriteLine (s.lower+"---"+s.upper);
+			var totalLines = s.Job.InputSize;
+			var size = s.Job.InputSizeBytes;
+			var lines = s.upper - s.lower;
+
+			var averagePerLine = size / (float)totalLines;
+			var predictedSize = lines * averagePerLine;
+
+			int MAX_TRANSFER_MB = 1;
+			long MAX_TRANSFERSIZE = MAX_TRANSFER_MB * 1000 * 1000;
+
+			var ns = Math.Ceiling(predictedSize/(double)MAX_TRANSFERSIZE);
+			var t = lines / (int)ns;
+			var last = s.lower;
+			var chunks = new List<Tuple<int, int>> ();
+			//Console.WriteLine ("File size: "+size+"\nLines: "+totalLines+" MAX: "+MAX_TRANSFERSIZE+"\nAverageSize: "+averagePerLine+"\nPredictedSize: "+predictedSize+"\nns: "+ns+"\nt: "+t);
+			for (var i = 0; i < ns; i++) {
+				var m = last + t;
+				chunks.Add(new Tuple<int, int>(last, m));
+				//Console.WriteLine (last+"-"+m);
+				last = m;
+			}
+			if (last != s.upper) {
+				chunks.Add (new Tuple<int, int>(s.lower, s.upper));
 			}
 
-			instanceLoad.Remove (split.ToString());
-
-			Console.WriteLine ("%% Map phase of "+split+" ended");
-
-			Async.each (job.Trackers, (tracker) => {
-				Console.WriteLine ("Saying "+tracker+" that "+split+" has finished!");
-				getWorker (tracker).completedSplit (job.Uuid, split.id);
-			});
+			var N_PARALLEL = 1;
+			var executed = 0;
+			Async.eachLimitBlocking (chunks, (chunk)=>{
+				var result = requestClient (clientAddress, chunk.Item1, chunk.Item2);
+				Async.ExecInThread(()=>{
+					exec (result);
+					executed ++;
+					if(executed>=chunks.Count) {
+						onEnd();
+					}
+				});
+			}, N_PARALLEL);
 		}
 
 		public List<string> requestClient(string clientAddress, int lower, int upper) {

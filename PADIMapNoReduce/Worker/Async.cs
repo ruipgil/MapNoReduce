@@ -40,26 +40,16 @@ namespace PADIMapNoReduce
 		/// <param name="each">Each.</param>
 		/// <typeparam name="T">The 1st type parameter.</typeparam>
 		public static List<Thread> each<T>(List<T> list, EachFn<T> each, int max) {
-			Console.WriteLine (max+" - "+list.Count);
-
 			if (max > list.Count) {
 				max = list.Count;
 			}
-
-			/*if (list.Count == 0) {
-				return new List<Thread> () {
-					new Thread (() => {
-					})
-				};
-			}*/
 
 			return list.GetRange(0, max).Select (x=>{
 				Thread t = new Thread(()=>{
 					try {
 						each(x);
 					}catch(Exception e) {
-						Console.WriteLine(x);
-						Console.WriteLine("Error at each! "+max);
+						Console.WriteLine("Error at each!");
 						Console.WriteLine(e);
 					}
 				});
