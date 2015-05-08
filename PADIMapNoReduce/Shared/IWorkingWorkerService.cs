@@ -26,6 +26,6 @@ namespace PADIMapNoReduce
 		void completedSplit(Guid job, int splitId);
 		void completedJob(Guid job);
 		void announceJob(Job job);
-		void addKnownWorkers(List<string> knownWorkers);
+		StatusInfo getStatus (string requester);
     }
 }

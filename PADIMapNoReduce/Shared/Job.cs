@@ -66,6 +66,17 @@ namespace PADIMapNoReduce
 		/// </summary>
 		/// <returns>The splits.</returns>
 		public List<Split> generateSplits() {
+			var THRESHOLD = 5 * 1000 * 1000;
+			List<Split> result;
+			if (InputSizeBytes >= THRESHOLD) {
+				result = generateSplitsSizeBound ();
+			} else {
+				result = generateSplitsSplitBound ();
+			}
+			return result.Where((elm, index) => !splitsCompleted.Contains (index)).ToList();
+		}
+
+		public List<Split> generateSplitsSplitBound() {
 			var temp = new List<int> ();
 			int chunk = inputSize / nSplits;
 
@@ -86,7 +97,35 @@ namespace PADIMapNoReduce
 				result.Add (new Split (this, i, lowerBound, higherBound));
 			}
 
-			return result.Where((elm, index) => !splitsCompleted.Contains (index)).ToList();
+			return result;
+		}
+
+		public List<Split> generateSplitsSizeBound() {
+			var totalLines = InputSize;
+			var size = InputSizeBytes;
+			var lines = InputSize;
+
+			var averagePerLine = size / (float)totalLines;
+			var predictedSize = lines * averagePerLine;
+
+			long maxTransferSize = 1 * 1000 * 1000;
+
+			var ns = Math.Ceiling(predictedSize/(double)maxTransferSize);
+			var t = lines / (int)ns;
+			var last = 0;
+			var chunks = new List<Split> ();
+			for (var i = 0; i < ns; i++) {
+				var m = last + t;
+				chunks.Add(new Split(this, i, last, m));
+				last = m;
+			}
+			if (last != totalLines) {
+				//Console.WriteLine ("not enough!");
+				chunks.Last ().upper = totalLines;
+				//chunks.Add (new Tuple<int, int>(s.lower, s.upper));
+			}
+			//chunks.ForEach (e => Console.WriteLine (e.lower+"-"+e.upper));
+			return chunks;
 		}
 
 		public override string ToString() {

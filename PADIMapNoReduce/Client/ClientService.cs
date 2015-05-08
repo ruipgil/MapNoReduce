@@ -21,7 +21,10 @@ namespace PADIMapNoReduce
 
 		List<string> fileContent;
         int lines;
+		string inputFile;
         string outputFolder;
+
+		Action doneCallback;
 
         public ClientService(int port, string host)
         {
@@ -41,7 +44,7 @@ namespace PADIMapNoReduce
             knownWorkerUrl = workerEntryUrl;
         }
 
-        public void submit(string inputFile, string outputFolder, int splits, byte[] code, string mapperName) // incomplete
+		public void submit(string inputFile, string outputFolder, int splits, byte[] code, string mapperName, Action callback) // incomplete
         {
             if (!hasKnownWorker)
             {
@@ -49,20 +52,50 @@ namespace PADIMapNoReduce
                 hasKnownWorker = true;
             }
             this.outputFolder = outputFolder;
-			FileInfo info = new FileInfo (inputFile);
-			float fileSize = info.Length/(1000f*1000f);
+			this.inputFile = inputFile;
+			var info = new FileInfo (inputFile);
 
             Console.Out.WriteLine("#submiting");
-            fileContent = new List<string>(File.ReadAllLines(inputFile));
-            lines = fileContent.Count();
+
+            //fileContent = new List<string>(File.ReadAllLines(inputFile));
+            //lines = fileContent.Count();
+			int lineCount = 0;
+			using (var reader = File.OpenText(inputFile))
+			{
+				while (reader.ReadLine() != null)
+				{
+					lineCount++;
+				}
+			}
+			lines = lineCount;
+
             Console.Out.WriteLine("\tlines:"+lines);
 			knownWorker.submit(ownAddress, lines, info.Length, splits, code, mapperName);
+
+			doneCallback = callback;
         }
 
         public List<string> get(int start, int end)
         {
             Console.Out.WriteLine("#get "+start+" "+end);
-            return fileContent.GetRange(start, end - start);
+
+			List<string> result = new List<string> ();
+			int lineCount = 0;
+			string line;
+			using (var reader = File.OpenText(inputFile))
+			{
+				while ((line=reader.ReadLine()) != null)
+				{
+					if (lineCount >= start) {
+						result.Add (line);
+					}
+					lineCount++;
+					if (end <= lineCount) {
+						break;
+					}
+				}
+			}
+			return result;
         }
 
         public void set(int split, List<IList<KeyValuePair<string, string>>> results)
@@ -73,6 +106,10 @@ namespace PADIMapNoReduce
             {
                 foreach (List<KeyValuePair<string, string>> result in results)
                 {
+					if (result.Count == 0) {
+						continue;
+					}
+
                     string entryResult = "";
                     foreach (KeyValuePair<string, string> entry in result)
                     {
@@ -82,5 +119,9 @@ namespace PADIMapNoReduce
                 }
             }
         }
+
+		public void done() {
+			doneCallback ();
+		}
     }
 }
