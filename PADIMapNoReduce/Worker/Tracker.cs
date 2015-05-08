@@ -23,6 +23,11 @@ namespace PADIMapNoReduce
 		const int LOAD = 10000;
 
 		public string ownAddress;
+        
+        //milliseconds
+        private int slow = 0;
+        private bool freeze = false;
+        private bool jt = false;
 
 		public Tracker (string myAddress, int port)
 		{
@@ -79,7 +84,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void updateKnownWorkersStatus() {
-			Async.eachBlocking(knownWorkers.ToList(), worker=>{
+			/*Async.eachBlocking(knownWorkers.ToList(), worker=>{
 				try {
 					var status = getWorker(worker).getStatus(ownAddress);
 
@@ -94,7 +99,7 @@ namespace PADIMapNoReduce
 				} catch(RemotingException) {
 					removeWorkers(worker);
 				}
-			});
+			});*/
 		}
 
 		public StatusInfo getStatus(string requester) {
@@ -103,6 +108,11 @@ namespace PADIMapNoReduce
 		}
 
 		public void startHeartbeating() {
+            //Disables communication if worker is freezed.
+            if (freeze)
+            {
+                return;
+            }
 			
 			List<string> toHeartbeat = new List<string> ();
 			foreach (var job in currentJobs.Values) {
@@ -172,7 +182,7 @@ namespace PADIMapNoReduce
 			job.Trackers = getReliableTrackers ();
 			if (job.Trackers.Count > 0) {
 				Async.eachBlocking (job.Trackers.ToList (), (tracker) => {
-					Console.WriteLine ("Saying " + tracker + " to update " + job);
+					Console.WriteLine ("[Job]Update " + job + " to " + tracker);
 					try {
 						getWorker (tracker).announceJob (job);
 					} catch(RemotingException) {
@@ -188,7 +198,8 @@ namespace PADIMapNoReduce
 		/// </summary>
 		/// <param name="jobUuid">Job id.</param>
 		public void takeOwnershipOfJob(Job job) {
-			Console.WriteLine ("I'm taking ownership of "+job);
+			Console.WriteLine ("[Job]Taking ownership of "+job);
+			Console.WriteLine ("\n"+job.debugDump ());
 
 			var otherTrackers = job.Trackers;
 			otherTrackers.Remove (ownAddress);
@@ -200,19 +211,20 @@ namespace PADIMapNoReduce
 		}
 
 		public void completedSplit(Guid job, int split) {
-			Console.WriteLine ("Completed split "+job+"#"+split);
+			Console.WriteLine ("[Split]C "+job+"#"+split);
 			if (currentJobs.ContainsKey (job)) {
 				currentJobs [job].splitCompleted (split);
 			}
 		}
 
 		public void completedJob(Guid job) {
-			Console.WriteLine ("Completed job! " + job);
+			Console.WriteLine ("[Job]C " + job);
 			currentJobs.Remove (job);
 		}
 
 		public void announceJob(Job job) {
-			Console.WriteLine ("Announced job "+job);
+			Console.WriteLine ("[Job]Announced "+job);
+			Console.WriteLine ("\n"+job.debugDump ());
 			if (job.Trackers.Contains (ownAddress)) {
 				if (currentJobs.ContainsKey (job.Uuid)) {
 					currentJobs [job.Uuid] = job;
@@ -225,13 +237,16 @@ namespace PADIMapNoReduce
 		}
 
 		public List<string> getReliableTrackers() {
-			updateKnownWorkersStatus ();
+			/*updateKnownWorkersStatus ();*/
 			var list = knownWorkers.Where (w => w != ownAddress).ToList ();
 			return list.GetRange (0, list.Count > 0 ? 1 : 0);
 		}
 
 		public void submit(string clientAddress, int inputSize, long fileSize,  int splits, byte[] code, string mapperName) {
-			Console.WriteLine ("Submit "+clientAddress+", "+inputSize+", "+splits+", ..., "+mapperName);
+			//receives a submit, therefore the job tracker
+            jt = true;
+            
+			Console.WriteLine ("[Submit]\n\tClient: "+clientAddress+"\n\tLines: "+inputSize+"\n\tSize: "+fileSize+" Bytes\n\tMapper Name: "+mapperName);
 			Job job = new Job (ownAddress, clientAddress, inputSize, fileSize, splits, mapperName, code);
 			currentJobs.Add (job.Uuid, job);
 
@@ -241,31 +256,30 @@ namespace PADIMapNoReduce
 		}
 
 		public List<string> getWorkersByLoad() {
-			updateKnownWorkersStatus ();
+			/*updateKnownWorkersStatus ();
 			var d = knownWorkersLoad.OrderBy (x => x.Value.Item1).ToDictionary(x=>x.Key, x=>x.Value);
 			foreach (var a in d) {
 				Console.WriteLine (a.Key+" - ("+a.Value.Item1+" ~ "+a.Value.Item2+")");
 			}
 
-			return d.Keys.ToList();
+			return d.Keys.ToList();*/
+            var w = knownWorkers.ToList();
+			w.Add (ownAddress);
+            return w;
 		}
 
 		public void startJob(Job job) {
-			Console.WriteLine (job.debugDump ());
-
-			Console.WriteLine ("Start job" + job);
+			Console.WriteLine ("[Job]> "+job);
 
 			Queue<Split> splits = new Queue<Split>(job.generateSplits ());
-			Console.WriteLine ("Generated #"+splits.Count+" splits");
-			job.generateSplits ().ForEach (s=>Console.WriteLine (s.lower+"-"+s.upper));
+			Console.WriteLine ("[Job]I "+job+" gens "+splits.Count+" splits");
 
 			while (splits.Count>0) {
 				var wList = getWorkersByLoad();
 				Async.eachBlocking(wList, (worker)=>{
 					Split s = splits.Dequeue();
-					Console.WriteLine("! Attributing "+s+" to "+worker);
+					Console.WriteLine ("[Job]I "+s+" to "+worker);
 					try {
-						
 						getWorker(worker).work (s);
 						// if the worker returns the worker doesn't need to receive completedSplit,
 						// sparing network traffic.
@@ -274,15 +288,15 @@ namespace PADIMapNoReduce
 						splits.Enqueue(s);
 						removeWorkers(worker);
 					} catch(Exception e) {
+
 						Console.WriteLine(e);
 					}
 				}, splits.Count);
 			}
-			Console.WriteLine ("The job "+job+" as finished!");
 
 			if( job.hasReplicas() ) {
 				Async.eachBlocking (job.Trackers, (tracker) => {
-					Console.WriteLine ("Saying "+tracker+" that "+job+" has finished!");
+					Console.WriteLine ("[Job]I "+job+" to "+tracker);
 					try {
 						getWorker (tracker).completedJob (job.Uuid);
 					} catch(RemotingException) {
@@ -294,25 +308,45 @@ namespace PADIMapNoReduce
 			var client = (IClientService)Activator.GetObject (typeof(IClientService), job.Client);
 			client.done ();
 
+			Console.WriteLine ("[Job]< "+job);
+
 			currentJobs.Remove (job.Uuid);
 		}
 
 		public void work(Split split) {
-			Console.WriteLine ("Starting split "+split);
+            
+            //simulates worker slowing down 
+            if (slow != 0)
+            {
+                Console.WriteLine("Falling asleep {0} milliseconds ....", slow);
+                Thread.Sleep(slow);
+            }
+
+            //Simulates worker freezing
+			// TODO: Should be a lock?
+            while (freeze && !jt);
+
+			if (instanceLoad.ContainsKey (split.ToString ())) {
+				// TODO instanceLoad[split.ToString()].Thread.Join();
+				return;
+			}
+
+
+            Console.WriteLine ("[Split]> "+split);
 			Job job = split.Job;
 
-			Thread.Sleep(3000);
+			//Thread.Sleep(3000);
 
 			instanceLoad.Add (split.ToString(), split.upper-split.lower);
 
-			IMapper mapper = new ParadiseCountMapper ();
+			IMapper mapper = new SampleMapper ();
 
 			var results = new List<IList<KeyValuePair<string, string>>> ();
 
 			var client = (IClientService)Activator.GetObject (typeof(IClientService), job.Client);
 
 			var lines = client.get(split.lower, split.upper);
-			Console.WriteLine (lines.Count+" expected "+(split.upper-split.lower));
+			//Console.WriteLine (lines.Count+" expected "+(split.upper-split.lower));
 			foreach(var line in lines) {
 				results.Add(mapper.Map (line));
 			}
@@ -324,10 +358,10 @@ namespace PADIMapNoReduce
 
 			instanceLoad.Remove (split.ToString());
 
-			Console.WriteLine (" ! Map phase of "+split+" ended");
+			Console.WriteLine ("[Split]<  "+split);
 
 			Async.each (job.Trackers, (tracker) => {
-				Console.WriteLine ("Saying "+tracker+" that "+split+" has finished!");
+				Console.WriteLine ("[Split]I  "+split+" to "+tracker);
 				try {
 					getWorker (tracker).completedSplit (job.Uuid, split.id);
 				} catch(RemotingException) {
@@ -339,6 +373,51 @@ namespace PADIMapNoReduce
 		public int GetLoad () {
 			return instanceLoad.Values.Sum () / LOAD;
 		}
+
+        public void slowWorker(int seconds)
+        {
+            Console.WriteLine("Worker is slowing down {0} seconds ...", seconds);
+            slow = seconds * 1000;
+
+        }
+
+        public void freezeWorker()
+        {
+            freeze = true;
+        }
+
+        public void unFreezeWorker()
+        {
+            freeze = false;
+        }
+
+        public bool isJobTracker()
+        {
+            return jt;
+        }
+
+        public bool isFreezed()
+        {
+            return freeze;
+        }
+        
+        public void getStatus()
+        {
+            String properties = " Job Tracker: " + jt + " Failing: "+freeze+"\n";
+            String kw = " Known Workers: ";
+            foreach (String w in knownWorkers)
+            {
+                kw += w + " ";
+            }
+            kw += "\n";
+            String jobs = " On going jobs: ";
+            foreach(KeyValuePair<Guid,Job> j in currentJobs)
+            {
+                jobs += j.Key + " ";
+            }
+            jobs += "\n";
+            Console.WriteLine("STATUS:\n" + properties + kw + jobs );
+        }
 	}
 }
 

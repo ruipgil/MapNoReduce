@@ -26,6 +26,9 @@ namespace PADIMapNoReduce
 		void completedSplit(Guid job, int splitId);
 		void completedJob(Guid job);
 		void announceJob(Job job);
-		StatusInfo getStatus (string requester);
+
+		void getStatus ();
+
+        bool isFreezed();
     }
 }

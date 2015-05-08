@@ -27,6 +27,7 @@ namespace PADIMapNoReduce
             int port = Decimal.ToInt32(workerPort.Value);
             String otherWorkers = otherText.Text;
             _controller.createWorker(port, otherWorkers);
+            
 
         }
 
@@ -84,22 +85,22 @@ namespace PADIMapNoReduce
         //Freeze Worker
         private void button3_Click(object sender, EventArgs e)
         {
-                _controller.freezeWorker(int.Parse(freezeWText.Text));  
+                _controller.freezeWorkerW(int.Parse(freezeWText.Text));  
         }
 
         private void button4_Click(object sender, EventArgs e)
         {
-               //TODO
+            _controller.freezeWorkerC(int.Parse(freezeJTText.Text));  
         }
 
         private void button5_Click(object sender, EventArgs e)
         {
-                _controller.unFreezeWorker(int.Parse(unFreezeWText.Text)); 
+                _controller.unFreezeWorkerW(int.Parse(unFreezeWText.Text)); 
         }
 
         private void button6_Click(object sender, EventArgs e)
         {
-                //TODO    
+            _controller.unFreezeWorkerC(int.Parse(unFreezeJTText.Text));    
         }
 
         private void button7_Click(object sender, EventArgs e)
