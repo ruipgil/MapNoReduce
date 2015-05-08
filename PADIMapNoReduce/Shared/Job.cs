@@ -11,7 +11,7 @@ namespace PADIMapNoReduce
 		private int nSplits;
 		private int inputSize;
 		private long fileSize;
-		private List<int> splitsCompleted = new List<int>();
+		private HashSet<int> splitsCompleted = new HashSet<int>();
 
 		private string mapperName;
 		private byte[] mapperCode;
@@ -19,6 +19,8 @@ namespace PADIMapNoReduce
 		private string clientAddress;
 		private string coordinatorAddress;
 		private List<string> trackers = new List<string>();
+
+		private Dictionary<int, string> assignments = new Dictionary<int, string>();
 
 		public Job(string coordinatorAddress, string clientAddress, int inputSize, long fileSize, int nSplits, string mapperName, byte[] mapperCode) {
 			uuid = System.Guid.NewGuid ();
@@ -43,6 +45,7 @@ namespace PADIMapNoReduce
 		}
 
 		public int NSplits { get { return nSplits; } }
+		public int SplitsCompleted { get { return splitsCompleted.Count; } }
 		public int InputSize { get { return inputSize; } }
 		public long InputSizeBytes { get { return fileSize; } }
 
@@ -51,12 +54,43 @@ namespace PADIMapNoReduce
 
 		public string Client { get { return clientAddress; } }
 
+		public Dictionary<int, string> Assignments { get { return assignments; } }
+
+		public bool assign(int split, string worker) {
+			if (assignments.ContainsKey (split)) {
+				return false;
+			} else {
+				assignments.Add (split, worker);
+				return true;
+			}
+		}
+
+		public bool deassign(int split) {
+			if (assignments.ContainsKey (split)) {
+				assignments.Remove (split);
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		public void removeAssignmentsFromWorker(string worker) {
+			var toRemove = new List<int> ();
+			foreach (var assignment in assignments) {
+				if (assignment.Value == worker) {
+					toRemove.Add(assignment.Key);
+				}
+			}
+			toRemove.ForEach (i => assignments.Remove (i));
+		}
+
 		public bool hasReplicas() {
 			return trackers.Count > 0;
 		}
 
 		public bool splitCompleted(int split) {
 			splitsCompleted.Add (split);
+			assignments.Remove (split);
 			return splitsCompleted.Count>nSplits;
 		}
 
@@ -73,7 +107,7 @@ namespace PADIMapNoReduce
 			} else {
 				result = generateSplitsSplitBound ();
 			}
-			return result.Where((elm, index) => !splitsCompleted.Contains (index)).ToList();
+			return result.Where((elm, index) => !splitsCompleted.Contains (index) && !assignments.ContainsKey(index)).ToList();
 		}
 
 		public List<Split> generateSplitsSplitBound() {
@@ -147,6 +181,11 @@ namespace PADIMapNoReduce
 				str += t + ", ";
 			}
 			str += "\n";
+
+			str += "splits assigned:\n";
+			foreach (var a in assignments) {
+				str += a.Key +" to " + a.Value + "\n";
+			}
 
 			return str;
 		}

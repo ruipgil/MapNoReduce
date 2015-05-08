@@ -30,5 +30,9 @@ namespace PADIMapNoReduce
 		void getStatus ();
 
         bool isFreezed();
+
+		void assignSplit(Guid job, int split, string worker);
+		void deassignSplit(Guid job, int split);
+		int getWorkStatus(Guid job, int split);
     }
 }
