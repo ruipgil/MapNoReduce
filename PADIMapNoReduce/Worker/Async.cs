@@ -9,15 +9,13 @@ namespace PADIMapNoReduce
 {
 	public class Async
 	{
-		public delegate void ExecMethod();
-		public static Thread ExecInThread(ExecMethod exec) {
+		public static Thread ExecInThread(Action exec) {
 			ThreadStart ts = new ThreadStart(exec);
 			Thread t = new Thread(ts);
 			t.Start();
 			return t;
 		}
 
-		public delegate void EachFn<T>(T elm);
 		/// <summary>
 		/// Executes a function at each element of a list.
 		/// Order NOT guaranteed.
@@ -26,12 +24,12 @@ namespace PADIMapNoReduce
 		/// <param name="list">List.</param>
 		/// <param name="each">Each.</param>
 		/// <typeparam name="T">The 1st type parameter.</typeparam>
-		public static List<Thread> eachBlocking<T>(List<T> list, EachFn<T> each, int max) {
+		public static List<Thread> eachBlocking<T>(List<T> list, Action<T> each, int max) {
 			var t = each<T> (list, each, max);
 			t.ForEach (x => x.Join ());
 			return t;
 		}
-		public static List<Thread> eachBlocking<T>(List<T> list, EachFn<T> each) {
+		public static List<Thread> eachBlocking<T>(List<T> list, Action<T> each) {
 			var t = each<T> (list, each, list.Count);
 			t.ForEach (x => x.Join ());
 			return t;
@@ -43,7 +41,7 @@ namespace PADIMapNoReduce
 		/// <param name="list">List.</param>
 		/// <param name="each">Each.</param>
 		/// <typeparam name="T">The 1st type parameter.</typeparam>
-		public static List<Thread> each<T>(List<T> list, EachFn<T> each, int max) {
+		public static List<Thread> each<T>(List<T> list, Action<T> each, int max) {
 			if (max > list.Count) {
 				max = list.Count;
 			}
@@ -61,7 +59,7 @@ namespace PADIMapNoReduce
 				return t;
 			}).ToList();
 		}
-		public static List<Thread> each<T>(List<T> list, EachFn<T> each) {
+		public static List<Thread> each<T>(List<T> list, Action<T> each) {
 			return each<T> (list, each, list.Count);
 		}
 
