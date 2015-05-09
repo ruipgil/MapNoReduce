@@ -90,23 +90,12 @@ namespace PADIMapNoReduce
 			}
 		}
 
-		public void updateKnownWorkersStatus() {
-			/*Async.eachBlocking(knownWorkers.ToList(), worker=>{
-				try {
-					var status = getWorker(worker).getStatus(ownAddress);
-
-					addKnownWorkers (knownWorkers);
-
-					var info = new Tuple<decimal, int> (status.load, status.tracking);
-					if (knownWorkersLoad.ContainsKey (worker)) {
-						knownWorkersLoad [worker] = info;
-					} else {
-						knownWorkersLoad.Add (worker, info);
-					}
-				} catch(RemotingException) {
-					removeWorkers(worker);
-				}
-			});*/
+		public void shareKnownWorkers(string sender, HashSet<string> workers) {
+			workers.Remove (ownAddress);
+			workers.Add (sender);
+			foreach(var worker in workers) {
+				knownWorkers.Add (worker);
+			}
 		}
 
 		/*public StatusInfo getStatus(string requester) {
@@ -148,6 +137,14 @@ namespace PADIMapNoReduce
 			});
 			// different process
 			removeWorkers (workersToDealWith);
+		}
+
+		public void startSharingKnownWorkers() {
+			Async.eachBlocking (knownWorkers.ToList(), (worker)=> {
+				try {
+					getWorker(worker).shareKnownWorkers(ownAddress, knownWorkers);
+				} catch(RemotingException) {}
+			});
 		}
 
 		/// <summary>
@@ -194,7 +191,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void assignReplica(Job job) {
-			job.Trackers = getReliableTrackers ();
+			job.Trackers = getWorkersByLoad ();
 			if (job.Trackers.Count > 0) {
 				Async.eachBlocking (job.Trackers.ToList (), (tracker) => {
 					Console.WriteLine ("[Job]Update " + job + " to " + tracker);
@@ -223,7 +220,7 @@ namespace PADIMapNoReduce
 			foreach (var assignment in job.Assignments.ToDictionary(a=>a.Key, a=>a.Value)) {
 				int status = WORK_INEXISTENT;
 				try {
-					status = getWorker(assignment.Value).getWorkStatus (job.Uuid, assignment.Key);
+					status = getWorker(assignment.Value).getSplitStatus (job.Uuid, assignment.Key);
 					Console.WriteLine("STATUS: "+assignment.Value+" "+assignment.Key+" . "+status);
 				} catch(RemotingException) {
 					removeWorkers (assignment.Value);
@@ -269,12 +266,6 @@ namespace PADIMapNoReduce
 			}
 		}
 
-		public List<string> getReliableTrackers() {
-			/*updateKnownWorkersStatus ();*/
-			var list = knownWorkers.Where (w => w != ownAddress).ToList ();
-			return list.GetRange (0, list.Count > 0 ? 1 : 0);
-		}
-
 		public void submit(string clientAddress, int inputSize, long fileSize,  int splits, byte[] code, string mapperName) {
 			//receives a submit, therefore the job tracker
             jt = true;
@@ -289,16 +280,24 @@ namespace PADIMapNoReduce
 		}
 
 		public List<string> getWorkersByLoad() {
-			/*updateKnownWorkersStatus ();
-			var d = knownWorkersLoad.OrderBy (x => x.Value.Item1).ToDictionary(x=>x.Key, x=>x.Value);
-			foreach (var a in d) {
-				Console.WriteLine (a.Key+" - ("+a.Value.Item1+" ~ "+a.Value.Item2+")");
-			}
+			var workers = new List<Tuple<string, int>> ();
+			Async.eachBlocking (knownWorkers.ToList (), (worker) => {
+				try {
+					workers.Add (new Tuple<string, int> (worker, getWorker (worker).getLoad ()));
+				} catch(RemotingException) {
+					removeWorkers(worker);
+				}
+			});
+			workers.Add (new Tuple<string, int>(ownAddress,getLoad()));
 
-			return d.Keys.ToList();*/
-            var w = knownWorkers.ToList();
-			w.Add (ownAddress);
-            return w;
+			var temp = workers.OrderByDescending (x => x.Item2);
+			Console.WriteLine ("Ordered workers: ");
+			foreach (var t in temp) {
+				Console.Write (t.Item1+" "+t.Item2);
+			}
+			Console.WriteLine ();
+
+			return temp.Select(x=>x.Item1).ToList();
 		}
 
 		public void assignSplit(Guid jobId, int splitId, string worker) {
@@ -334,11 +333,6 @@ namespace PADIMapNoReduce
 			Console.WriteLine ("[Job]I "+job+" gens "+splits.Count+" splits");
 
 			do {
-				
-				/*if (splits.Count != job.SplitsCompleted) {
-					job.Assignments.Clear ();
-				}*/
-
 				splits = new Queue<Split> (job.generateSplits ());
 
 				Console.WriteLine (job.debugDump ());
@@ -386,7 +380,7 @@ namespace PADIMapNoReduce
 
 		const int WORK_DONE = -1;
 		const int WORK_INEXISTENT = -2;
-		public int getWorkStatus(Guid jobId, int splitId) {
+		public int getSplitStatus(Guid jobId, int splitId) {
 			string id = jobId + "#" + splitId;
 			if (splitsDone.Contains (id)) {
 				return WORK_DONE;
@@ -410,11 +404,11 @@ namespace PADIMapNoReduce
 			// TODO: Should be a lock?
             while (freeze && !jt);
 
-			if (instanceLoad.ContainsKey (split.ToString ())) {
-				/*Console.WriteLine ("[Split]Join "+split);
-				instanceLoad[split.ToString()].thread.Join();*/
+			/*if (instanceLoad.ContainsKey (split.ToString ())) {
+				Console.WriteLine ("[Split]Join "+split);
+				instanceLoad[split.ToString()].thread.Join();
 				return;
-			}
+			}*/
 
 
             Console.WriteLine ("[Split]> "+split);
@@ -460,10 +454,14 @@ namespace PADIMapNoReduce
 			});
 		}
 
-		public int GetLoad () {
-			// TODO
-			//return instanceLoad.Values.Sum () / LOAD;
-			return 1;
+		public const int TRACKER_OVERHEAD_VS_WORKER = 100;
+
+		public int getLoad () {
+			if (freeze) {
+				return Int32.MaxValue;
+			}else{
+				return (slow/1000) * currentJobs.Values.Count * TRACKER_OVERHEAD_VS_WORKER + instanceLoad.Values.Sum(x=>x.remaining) * (slow/1000);
+			}
 		}
 
         public void slowWorker(int seconds)

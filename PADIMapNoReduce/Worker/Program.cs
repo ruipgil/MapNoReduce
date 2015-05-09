@@ -60,6 +60,15 @@ namespace PADIMapNoReduce
 			Thread t = new Thread(ts);
 			t.Start();
 
+			ThreadStart ts2 = new ThreadStart(()=>{
+				while(true) {
+					tracker.startSharingKnownWorkers();
+					Thread.Sleep(2000);
+				}
+			});
+			Thread t2 = new Thread(ts2);
+			t2.Start();
+
             Console.Out.WriteLine("Press enter to close");
             Console.In.ReadLine();
 			t.Abort ();

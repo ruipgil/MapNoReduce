@@ -86,6 +86,15 @@ namespace PADIMapNoReduce
 				Parallel.ForEach (list,  new ParallelOptions { MaxDegreeOfParallelism = limit }, each);
 			});
 		}
+
+		/*public delegate List<T> ListCaller<T>();
+		public static void eachLimitBlockingDynamic<T>(ListCaller<T> listCaller, Action<T> each, int limit) {
+			var list = listCaller ();
+			var threads = new List<Thread> ();
+			for (var i = 0; i < limit; i++) {
+				new Thread ();
+			}
+		}*/
 	}
 }
 
