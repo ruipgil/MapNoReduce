@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{C7A315CC-EBB4-4484-885A-DE0164EEDBA1}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>UserApplication</RootNamespace>
     <AssemblyName>UserApplication</AssemblyName>
@@ -30,9 +30,6 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup>
-    <StartupObject />
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -82,11 +79,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Client\Client.csproj">
-      <Project>{f857807a-62c7-44b0-9740-10638f6eae4a}</Project>
+      <Project>{F857807A-62C7-44B0-9740-10638F6EAE4A}</Project>
       <Name>Client</Name>
     </ProjectReference>
     <ProjectReference Include="..\Shared\Shared.csproj">
-      <Project>{56971102-adec-45a2-910c-3d0c0e5b5814}</Project>
+      <Project>{56971102-ADEC-45A2-910C-3D0C0E5B5814}</Project>
       <Name>Shared</Name>
     </ProjectReference>
   </ItemGroup>

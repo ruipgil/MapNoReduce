@@ -28,7 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.connectButton = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.addressTextBox = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
@@ -53,16 +52,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.portUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitsUpDown)).BeginInit();
             this.SuspendLayout();
-            // 
-            // connectButton
-            // 
-            this.connectButton.Location = new System.Drawing.Point(293, 35);
-            this.connectButton.Name = "connectButton";
-            this.connectButton.Size = new System.Drawing.Size(75, 23);
-            this.connectButton.TabIndex = 0;
-            this.connectButton.Text = "Connect";
-            this.connectButton.UseVisualStyleBackColor = true;
-            this.connectButton.Click += new System.EventHandler(this.connectClick);
             // 
             // label1
             // 
@@ -130,7 +119,6 @@
             // 
             // inputFileTextBox
             // 
-            this.inputFileTextBox.Enabled = false;
             this.inputFileTextBox.Location = new System.Drawing.Point(118, 86);
             this.inputFileTextBox.Name = "inputFileTextBox";
             this.inputFileTextBox.Size = new System.Drawing.Size(201, 20);
@@ -139,7 +127,6 @@
             // 
             // outputFolderTextBox
             // 
-            this.outputFolderTextBox.Enabled = false;
             this.outputFolderTextBox.Location = new System.Drawing.Point(118, 121);
             this.outputFolderTextBox.Name = "outputFolderTextBox";
             this.outputFolderTextBox.Size = new System.Drawing.Size(201, 20);
@@ -148,7 +135,6 @@
             // 
             // mapperFileTextBox
             // 
-            this.mapperFileTextBox.Enabled = false;
             this.mapperFileTextBox.Location = new System.Drawing.Point(118, 157);
             this.mapperFileTextBox.Name = "mapperFileTextBox";
             this.mapperFileTextBox.Size = new System.Drawing.Size(201, 20);
@@ -157,7 +143,6 @@
             // 
             // mapperClassnameTextBox
             // 
-            this.mapperClassnameTextBox.Enabled = false;
             this.mapperClassnameTextBox.Location = new System.Drawing.Point(118, 191);
             this.mapperClassnameTextBox.Name = "mapperClassnameTextBox";
             this.mapperClassnameTextBox.Size = new System.Drawing.Size(250, 20);
@@ -166,7 +151,6 @@
             // 
             // workButton
             // 
-            this.workButton.Enabled = false;
             this.workButton.Location = new System.Drawing.Point(293, 260);
             this.workButton.Name = "workButton";
             this.workButton.Size = new System.Drawing.Size(75, 23);
@@ -208,7 +192,6 @@
             // 
             // splitsUpDown
             // 
-            this.splitsUpDown.Enabled = false;
             this.splitsUpDown.Location = new System.Drawing.Point(118, 225);
             this.splitsUpDown.Maximum = new decimal(new int[] {
             -402653185,
@@ -291,10 +274,8 @@
             this.Controls.Add(this.label2);
             this.Controls.Add(this.addressTextBox);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.connectButton);
             this.Name = "Main";
             this.Text = "User Application - PADI MapNoReduce";
-            //this.Load += new System.EventHandler(this.Main_Load);
             ((System.ComponentModel.ISupportInitialize)(this.portUpDown)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitsUpDown)).EndInit();
             this.ResumeLayout(false);
@@ -304,7 +285,6 @@
 
         #endregion
 
-        private System.Windows.Forms.Button connectButton;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox addressTextBox;
         private System.Windows.Forms.Label label2;
