@@ -90,8 +90,8 @@ namespace PADIMapNoReduce
 
                 String pmEntryUrl = tempSplits[1];
                 IPuppetMasterService pm = (IPuppetMasterService)Activator.GetObject(typeof(IPuppetMasterService), pmEntryUrl);
-
-                pm.createWorker(tempSplits[2], tempSplits.Length>3?tempSplits[3]:"");
+                var wa = tempSplits[2].Split(':')[1].Split('/')[0];
+				pm.createWorker(tempSplits[2], (tempSplits.Length>3?tempSplits[3]:"") + " -a " + wa);
 
             }
             if (splits[0].Equals("SUBMIT"))
@@ -105,17 +105,18 @@ namespace PADIMapNoReduce
                 string mapName = tempSplits[4];
                 string mapPath = tempSplits[5];
                 byte[] code = System.IO.File.ReadAllBytes(mapPath);
-                //IWorkerService worker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
+
                 var client = new ClientService(10001);
+				var next = false;
                 client.init(workerEntryUrl);
                 client.submit(inputFile, outputFolder, nrSplits, code, mapName, () => {
+					next = true;
                     Console.WriteLine("Work of "+inputFile+" completed!");
                 });
-
-                //IClientService client = (IClientService)Activator.GetObject(typeof(IWorkerService), "tcp://localhost:10001/C");
-                
-                //client.submit(inputFile, outputFile, nrSplits, code, mapName);
-
+				/*var t = new Thread (() => {
+					while(!next) {}
+				});
+				t.Join ();*/
 
             }
             if (splits[0].Equals("WAIT"))
@@ -149,12 +150,9 @@ namespace PADIMapNoReduce
             }
         }
 
-
         public void createWorker()
         {
             String s = Convert.ToString(workerPortNr);
-            /*string[] args = new string[1];
-            args[0] = s;*/
             Console.Out.WriteLine("Creating Worker @ port {0}", workerPortNr);
             Process.Start("Worker.exe", s);
             workerPortNr++;
@@ -163,20 +161,18 @@ namespace PADIMapNoReduce
         public void createWorker(int port, string otherWorkers)
         {
             String s = Convert.ToString(port) + " " + otherWorkers;
-            /*string[] args = new string[1];
-            args[0] = s;*/
             Console.Out.WriteLine("Creating Worker @ port {0}", port);
             Process.Start("Worker.exe", s);
             
         }
         
-        public void createWorker(string url, string otherWorkers)
+        public void createWorker(string url, string args)
         {
             //TODO IMPROVE THIS : Only works for localhost (i think)
             String[] splits = url.Split(new string[] { ":" }, 3, StringSplitOptions.None);
             String[] splits2 = splits[2].Split(new string[] { "/" }, 2, StringSplitOptions.None);
             int port = int.Parse(splits2[0]);
-            String s = splits2[0] + " " + otherWorkers;
+            String s = splits2[0] + " " + args;
             /*string[] args = new string[1];
             args[0] = s;*/
             Console.Out.WriteLine("Creating Worker @ port {0}", port);
