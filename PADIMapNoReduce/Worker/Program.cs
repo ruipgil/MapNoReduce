@@ -19,6 +19,7 @@ namespace PADIMapNoReduce
         static void Main(string[] args)
         {
             int port;
+			string address = "tcp://localhost";
             List<string> workerMap = new List<string>();
             if (args.Length == 0)
             {
@@ -40,16 +41,17 @@ namespace PADIMapNoReduce
                         s = 0;
                     }
                     workerMap = (new List<string>(args)).GetRange(1, s);
+					var temp = workerMap.IndexOf ("-a");
+					
+					if (temp>=0 && workerMap.Count-1>temp) {
+						address = workerMap [temp + 1];
+						workerMap.Remove (address);
+					}
+					workerMap.Remove ("-a");
                 }
             }
-            Tracker tracker = new Tracker(port);
+            Tracker tracker = new Tracker(address, port);
 			tracker.addKnownWorkers (workerMap);
-
-            Console.Out.WriteLine("I know: ");
-            foreach(string worker in workerMap){
-                Console.Out.Write(worker + " ");
-            }
-            Console.Out.WriteLine(" ");
 
 			ThreadStart ts = new ThreadStart(() => {
 				while(true) {

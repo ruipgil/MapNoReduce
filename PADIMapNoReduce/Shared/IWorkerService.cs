@@ -15,11 +15,16 @@ namespace PADIMapNoReduce
 
         void freezeWorker();
 
-        void unFreezeWorker();
+        void unfreezeWorker();
+
+		void freezeCoordinator();
+
+		void unfreezeCoordinator();
 
         void slowWorker(int seconds);
 
         void getStatus();
+        void getStatus(bool propagate);
         
     }
 }

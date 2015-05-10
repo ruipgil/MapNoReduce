@@ -23,6 +23,11 @@ namespace PADIMapNoReduce
             RemotingServices.Marshal(this, "PM", typeof(PuppetMasterService));
         }
 
+         public override object InitializeLifetimeService()
+         {
+             return null;
+         }
+
          public void createWorker(int port, string otherWorkers)
          {
              _controller.createWorker(port, otherWorkers);

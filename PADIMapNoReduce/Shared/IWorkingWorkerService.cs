@@ -27,10 +27,6 @@ namespace PADIMapNoReduce
 		void completedJob(Guid job);
 		void announceJob(Job job);
 
-		void getStatus ();
-
-        bool isFreezed();
-
 		void assignSplit(Guid job, int split, string worker);
 		void deassignSplit(Guid job, int split);
 		WorkStatus getSplitStatus(Guid job, int split);

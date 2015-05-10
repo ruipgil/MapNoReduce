@@ -107,10 +107,10 @@ namespace PADIMapNoReduce
                 byte[] code = System.IO.File.ReadAllBytes(mapPath);
 
                 var client = new ClientService(10001);
-				var next = false;
+				//var next = false;
                 client.init(workerEntryUrl);
                 client.submit(inputFile, outputFolder, nrSplits, code, mapName, () => {
-					next = true;
+					//next = true;
                     Console.WriteLine("Work of "+inputFile+" completed!");
                 });
 				/*var t = new Thread (() => {
@@ -186,7 +186,7 @@ namespace PADIMapNoReduce
             foreach (KeyValuePair<int, string> pair in workerIds)
             {
                 IWorkerService worker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), pair.Value);
-                worker.getStatus();
+                worker.getStatus(true);
             }
         }
 
@@ -223,27 +223,21 @@ namespace PADIMapNoReduce
         {
             Console.Out.WriteLine("Unfreezing worker {0} ...", id);
             IWorkerService worker = getWorker(id);
-            worker.unFreezeWorker();
+            worker.unfreezeWorker();
         }
 
         public void freezeWorkerC(int id)
         {
             Console.Out.WriteLine("Freezing worker {0} ...", id);
             IWorkerService worker = getWorker(id);
-            /*if (worker.isJobTracker())
-            {
-                worker.freezeWorker();
-            }*/
+			worker.freezeCoordinator ();
         }
 
         public void unFreezeWorkerC(int id)
         {
             Console.Out.WriteLine("Unfreezing worker {0} ...", id);
-            /*IWorkerService worker = getWorker(id);
-            if (worker.isJobTracker())
-            {
-                worker.unFreezeWorker();
-            }*/
+            IWorkerService worker = getWorker(id);
+            worker.unfreezeCoordinator ();
         }
 
     }

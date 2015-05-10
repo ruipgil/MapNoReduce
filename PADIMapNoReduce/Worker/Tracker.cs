@@ -6,6 +6,7 @@ using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting;
 using System.Threading;
 using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace PADIMapNoReduce
 {
@@ -36,7 +37,8 @@ namespace PADIMapNoReduce
         
         //milliseconds
         private int slow = 0;
-        private bool freeze = false;
+		private bool freezeW = false;
+		private bool freezeC = false;
 
 		public Tracker (string myAddress, int port)
 		{
@@ -115,7 +117,7 @@ namespace PADIMapNoReduce
 
 		public void startHeartbeating() {
             //Disables communication if worker is freezed.
-            if (freeze)
+            if (freezeC)
             {
                 return;
             }
@@ -150,6 +152,10 @@ namespace PADIMapNoReduce
 		}
 
 		public void startSharingKnownWorkers() {
+			if(freezeC) {
+				return;
+			}
+
 			Async.eachBlocking (knownWorkers.ToList(), (worker)=> {
 				try {
 					getWorker(worker).shareKnownWorkers(ownAddress, knownWorkers);
@@ -279,6 +285,9 @@ namespace PADIMapNoReduce
 		}
 
 		public void submit(string clientAddress, int inputSize, long fileSize,  int splits, byte[] code, string mapperName) {
+
+			while (freezeW) {
+			}
             
 			Console.WriteLine ("[Submit]\n\tClient: "+clientAddress+"\n\tLines: "+inputSize+"\n\tSize: "+fileSize+" Bytes\n\tMapper Name: "+mapperName);
 			Job job = new Job (ownAddress, clientAddress, inputSize, fileSize, splits, mapperName, code);
@@ -300,17 +309,12 @@ namespace PADIMapNoReduce
 			});
 			workers.Add (new Tuple<string, int>(ownAddress,getLoad()));
 
-			//var temp = workers.OrderByDescending (x => x.Item2);
-			/*Console.WriteLine ("Ordered workers: ");
-			foreach (var t in temp) {
-				Console.Write (t.Item1+" "+t.Item2);
-			}
-			Console.WriteLine ();*/
-
 			return workers.OrderByDescending (x => x.Item2).Select(x=>x.Item1).ToList();
 		}
 
 		public void assignSplit(Guid jobId, int splitId, string worker) {
+			while (freezeC) {
+			}
 			if (currentJobs.ContainsKey (jobId)) {
 				var job = currentJobs [jobId];
 				job.assign (splitId, worker);
@@ -318,6 +322,8 @@ namespace PADIMapNoReduce
 		}
 
 		public void deassignSplit(Guid jobId, int split) {
+			while (freezeC) {
+			}
 			if (currentJobs.ContainsKey (jobId)) {
 				var job = currentJobs [jobId];
 				job.deassign (split);
@@ -325,6 +331,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void informReplicas(Job job, Action<string> action) {
+
 			if( job.hasReplicas() ) {
 				Async.eachBlocking (job.Trackers, (w)=>{
 					try {
@@ -399,20 +406,37 @@ namespace PADIMapNoReduce
 			return WorkStatus.Inexistent;
 		}
 
-		public void work(Split split) {
-			if (ownAddress.EndsWith ("30003/W")) {
-				Thread.Sleep (30000);
+		private delegate IList<KeyValuePair<string, string>> MapFn(string line);
+
+		private MapFn buildMapperInstance(Split split) {
+			Assembly assembly = Assembly.Load(split.Job.MapperCode);
+			// Walk through each type in the assembly looking for our class
+			foreach (Type type in assembly.GetTypes()) {
+				if (type.IsClass == true) {
+					if (type.FullName.EndsWith("." + split.Job.MapperName)) {
+						object ClassObj = Activator.CreateInstance(type);
+						MapFn callback = (line)=> {
+							object[] args = new object[] { line };
+							object resultObject = type.InvokeMember("Map", BindingFlags.Default | BindingFlags.InvokeMethod, null, ClassObj, args);
+							return (IList<KeyValuePair<string, string>>) resultObject;
+						};
+						return callback;
+					}
+				}
 			}
+			return null;
+		}
+
+		public void work(Split split) {
+
             //simulates worker slowing down 
             if (slow != 0)
             {
-                Console.WriteLine("[Split]Slow {0} milliseconds ....", slow);
                 Thread.Sleep(slow);
             }
 
             //Simulates worker freezing
-			// TODO: Should be a lock?
-            while (freeze);
+			while (freezeW) {}
 
 			if (instanceLoad.ContainsKey (split.ToString ())) {
 				Console.WriteLine ("[Split]Join "+split);
@@ -432,7 +456,7 @@ namespace PADIMapNoReduce
             winfo.status = WorkStatus.Getting;
 			instanceLoad.Add (split.ToString(), winfo);
 
-			IMapper mapper = new SampleMapper ();
+			MapFn map = buildMapperInstance(split);
 
 			var results = new ConcurrentQueue<IList<KeyValuePair<string, string>>> ();
 
@@ -441,14 +465,11 @@ namespace PADIMapNoReduce
 
 			winfo.status = WorkStatus.Mapping;
             
-			//Console.WriteLine (lines.Count+" expected "+(split.upper-split.lower));
-            // TODO async.limiting
-			//Parallel.ForEach(lines, 
 			Async.eachLimitBlocking(lines, (line)=>{
-				results.Enqueue(mapper.Map (line));
+				while(freezeW) {}
+				results.Enqueue(map (line));
 				winfo.remaining--;
 			}, Math.Min(N_PARALLEL_MAP_PER_JOB, winfo.remaining));
-			//Console.WriteLine ("%");
 
             winfo.status = WorkStatus.Sending;
 			// data replication:
@@ -466,6 +487,7 @@ namespace PADIMapNoReduce
 
 			Console.WriteLine ("[Split]<  "+split);
 
+			while(freezeW) {}
 			Async.each (job.Trackers, (tracker) => {
 				Console.WriteLine ("[Split]I  "+split+" to "+tracker);
 				try {
@@ -479,7 +501,7 @@ namespace PADIMapNoReduce
 		public const int TRACKER_OVERHEAD_VS_WORKER = 100;
 
 		public int getLoad () {
-			if (freeze) {
+			if (freezeW || freezeC) {
 				return Int32.MaxValue;
 			}else{
                 var s = (slow == 0 ? 1 : (slow / 1000));
@@ -494,20 +516,37 @@ namespace PADIMapNoReduce
 
         }
 
-        public void freezeWorker()
-        {
-            freeze = true;
-        }
+		public void freezeWorker()
+		{
+			freezeW = true;
+		}
 
-        public void unFreezeWorker()
-        {
-            freeze = false;
-        }
+		public void unfreezeWorker()
+		{
+			freezeW = false;
+		}
 
-        public bool isFreezed()
-        {
-            return freeze;
-        }
+		public void freezeCoordinator()
+		{
+			freezeC = true;
+		}
+
+		public void unfreezeCoordinator()
+		{
+			freezeC = false;
+		}
+
+		public void getStatus(bool propagate)
+		{
+			getStatus ();
+			if (propagate) {
+				Async.each (knownWorkers.ToList (), (worker) => {
+					try {
+						getWorker(worker).getStatus();
+					} catch(Exception) {}
+				});
+			}
+		}
         
         public void getStatus()
         {
