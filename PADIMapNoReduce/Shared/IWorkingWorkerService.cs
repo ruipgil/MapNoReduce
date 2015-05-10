@@ -33,7 +33,7 @@ namespace PADIMapNoReduce
 
 		void assignSplit(Guid job, int split, string worker);
 		void deassignSplit(Guid job, int split);
-		int getSplitStatus(Guid job, int split);
+		WorkStatus getSplitStatus(Guid job, int split);
 		void shareKnownWorkers (string sender, HashSet<string> workers);
 		int getLoad();
     }

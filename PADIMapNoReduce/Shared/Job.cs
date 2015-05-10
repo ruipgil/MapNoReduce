@@ -214,5 +214,14 @@ namespace PADIMapNoReduce
 			return Job.Uuid.ToString ()+"#"+id;
 		}
 	}
+
+	public enum WorkStatus
+	{
+		Getting,
+		Sending,
+		Mapping,
+		Inexistent,
+		Done
+	}
 }
 
