@@ -83,7 +83,6 @@ namespace PADIMapNoReduce
             {
                 string[] tempSplits = splits[1].Split(new string[] { " " }, 4, StringSplitOptions.None);
                 Console.Out.WriteLine("Creating Worker...");
-                // Console.Out.WriteLine(splits[1]);
 
                 //SAVE WORKER ID
                 KeyValuePair<int, string> kvpair = new KeyValuePair<int, string>(int.Parse(tempSplits[0]), tempSplits[2]);
@@ -91,29 +90,31 @@ namespace PADIMapNoReduce
 
                 String pmEntryUrl = tempSplits[1];
                 IPuppetMasterService pm = (IPuppetMasterService)Activator.GetObject(typeof(IPuppetMasterService), pmEntryUrl);
-                //TODO what to do with <entryurl> (split[4])???
 
-                //TODO IMPROVE THE CREATION OF WORKER GIVING THE URL
-                pm.createWorker(tempSplits[2], tempSplits[3]);
+                pm.createWorker(tempSplits[2], tempSplits.Length>3?tempSplits[3]:"");
 
             }
             if (splits[0].Equals("SUBMIT"))
             {
                 Console.Out.WriteLine("Submitting job...");
                 string[] tempSplits = splits[1].Split(new string[] { " " }, 6, StringSplitOptions.None);
-                String workerEntryUrl = tempSplits[0];
-                String inputFile = tempSplits[1];
-                String outputFile = tempSplits[2];
+                string workerEntryUrl = tempSplits[0];
+                string inputFile = tempSplits[1];
+                string outputFolder = tempSplits[2];
                 int nrSplits = int.Parse(tempSplits[3]);
-                String mapName = tempSplits[4];
-                String mapPath = tempSplits[5];
-                IWorkerService worker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
-
-
-                // TODO I ASSUME THE CLIENT IS ALWAYS IN THE SAME LOCATION!!
-                IClientService client = (IClientService)Activator.GetObject(typeof(IWorkerService), "tcp://localhost:10001/C");
+                string mapName = tempSplits[4];
+                string mapPath = tempSplits[5];
                 byte[] code = System.IO.File.ReadAllBytes(mapPath);
-                client.submit(inputFile, outputFile, nrSplits, code, mapName);
+                //IWorkerService worker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), workerEntryUrl);
+                var client = new ClientService(10001);
+                client.init(workerEntryUrl);
+                client.submit(inputFile, outputFolder, nrSplits, code, mapName, () => {
+                    Console.WriteLine("Work of "+inputFile+" completed!");
+                });
+
+                //IClientService client = (IClientService)Activator.GetObject(typeof(IWorkerService), "tcp://localhost:10001/C");
+                
+                //client.submit(inputFile, outputFile, nrSplits, code, mapName);
 
 
             }
@@ -219,40 +220,34 @@ namespace PADIMapNoReduce
         {
             Console.Out.WriteLine("Freezing worker {0} ...", id);
             IWorkerService worker = getWorker(id);
-            if (!worker.isJobTracker())
-            {
-                worker.freezeWorker();
-            }
+            worker.freezeWorker();
         }
 
         public void unFreezeWorkerW(int id)
         {
             Console.Out.WriteLine("Unfreezing worker {0} ...", id);
             IWorkerService worker = getWorker(id);
-            if (!worker.isJobTracker())
-            {
-                worker.unFreezeWorker();
-            }
+            worker.unFreezeWorker();
         }
 
         public void freezeWorkerC(int id)
         {
             Console.Out.WriteLine("Freezing worker {0} ...", id);
             IWorkerService worker = getWorker(id);
-            if (worker.isJobTracker())
+            /*if (worker.isJobTracker())
             {
                 worker.freezeWorker();
-            }
+            }*/
         }
 
         public void unFreezeWorkerC(int id)
         {
             Console.Out.WriteLine("Unfreezing worker {0} ...", id);
-            IWorkerService worker = getWorker(id);
+            /*IWorkerService worker = getWorker(id);
             if (worker.isJobTracker())
             {
                 worker.unFreezeWorker();
-            }
+            }*/
         }
 
     }

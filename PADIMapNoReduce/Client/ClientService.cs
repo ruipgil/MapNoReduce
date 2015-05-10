@@ -8,11 +8,13 @@ using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Messaging;
 using System.Runtime.Remoting;
+using System.Collections;
 
 namespace PADIMapNoReduce
 {
     public class ClientService : MarshalByRefObject, IClientService
     {
+        IDictionary RemoteChannelProperties = new Hashtable();
 
         IWorkerService knownWorker;
         string knownWorkerUrl;
@@ -28,15 +30,22 @@ namespace PADIMapNoReduce
 
         public ClientService(int port, string host)
         {
-            TcpChannel channel = new TcpChannel(port);
+            ownAddress = @"tcp://" + host + ":" + port + "/C";
+            RemoteChannelProperties["port"] = port+"";
+            RemoteChannelProperties["name"] = "client"+port;
+            TcpChannel channel = new TcpChannel(RemoteChannelProperties, null, null);
             ChannelServices.RegisterChannel(channel, false);
             RemotingServices.Marshal(this, "C", typeof(ClientService));
-			ownAddress = @"tcp://"+host+":" + port + "/C";
         }
 
 		public ClientService(int port) : this(port, "localhost")
 		{
 		}
+
+        public override object InitializeLifetimeService()
+        {
+            return null;
+        }
 
         public void init(string workerEntryUrl)
         {
@@ -57,8 +66,6 @@ namespace PADIMapNoReduce
 
             Console.Out.WriteLine("#submiting");
 
-            //fileContent = new List<string>(File.ReadAllLines(inputFile));
-            //lines = fileContent.Count();
 			int lineCount = 0;
 			using (var reader = File.OpenText(inputFile))
 			{
@@ -70,6 +77,12 @@ namespace PADIMapNoReduce
 			lines = lineCount;
 
             Console.Out.WriteLine("\tlines:"+lines);
+            Console.WriteLine(knownWorker+", "+ownAddress + ", ");
+            Console.WriteLine(lines);
+            Console.WriteLine(info.Length);
+            Console.WriteLine(splits);
+            Console.WriteLine(code);
+            Console.WriteLine(mapperName);
 			knownWorker.submit(ownAddress, lines, info.Length, splits, code, mapperName);
 
 			doneCallback = callback;
