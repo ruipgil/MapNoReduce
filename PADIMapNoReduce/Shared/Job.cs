@@ -7,6 +7,7 @@ namespace PADIMapNoReduce
 	[Serializable]
 	public class Job {
 		private Guid uuid;
+		private DateTime started;
 
 		private int nSplits;
 		private int inputSize;
@@ -24,6 +25,7 @@ namespace PADIMapNoReduce
 
 		public Job(string coordinatorAddress, string clientAddress, int inputSize, long fileSize, int nSplits, string mapperName, byte[] mapperCode) {
 			uuid = System.Guid.NewGuid ();
+			started = DateTime.Now;
 			this.coordinatorAddress = coordinatorAddress;
 			this.clientAddress = clientAddress;
 			this.inputSize = inputSize;

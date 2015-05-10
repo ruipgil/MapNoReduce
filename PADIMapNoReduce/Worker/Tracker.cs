@@ -14,6 +14,7 @@ namespace PADIMapNoReduce
 		public Thread thread;
 		public int remaining;
         public WorkStatus status;
+		public DateTime started;
 	}
 
 	public class Tracker : MarshalByRefObject, IWorkerService, IWorkingWorkerService
@@ -413,20 +414,21 @@ namespace PADIMapNoReduce
 			// TODO: Should be a lock?
             while (freeze);
 
-			/*if (instanceLoad.ContainsKey (split.ToString ())) {
+			if (instanceLoad.ContainsKey (split.ToString ())) {
 				Console.WriteLine ("[Split]Join "+split);
 				instanceLoad[split.ToString()].thread.Join();
 				return;
-			}*/
+			}
 
 
             Console.WriteLine ("[Split]> "+split);
 			Job job = split.Job;
 
 			WorkInfo winfo = new WorkInfo();
+			winfo.started = DateTime.Now;
 			winfo.split = split;
 			winfo.remaining = split.upper - split.lower;
-			//winfo.thread = Thread.CurrentThread;
+			winfo.thread = Thread.CurrentThread;
             winfo.status = WorkStatus.Getting;
 			instanceLoad.Add (split.ToString(), winfo);
 
