@@ -43,9 +43,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Async.cs" />
-    <Compile Include="Tracker.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TrackerService.cs" />
+    <Compile Include="Job.cs" />
+    <Compile Include="IWService.cs" />
+    <Compile Include="Split.cs" />
+    <Compile Include="WorkStatus.cs" />
+    <Compile Include="StatusInfo.cs" />
+    <Compile Include="WorkInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

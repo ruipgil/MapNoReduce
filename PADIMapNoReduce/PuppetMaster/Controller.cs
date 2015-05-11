@@ -185,12 +185,12 @@ namespace PADIMapNoReduce
             Console.Out.WriteLine("Obtaining the workers and job trackers status");
             foreach (KeyValuePair<int, string> pair in workerIds)
             {
-                IWorkerService worker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), pair.Value);
+				IWService worker = (IWService)Activator.GetObject(typeof(IWService), pair.Value);
                 worker.getStatus(true);
             }
         }
 
-        public IWorkerService getWorker(int id)
+		public IWService getWorker(int id)
         {
             string entryUrl = null;
             //get entry url for the worker id
@@ -202,41 +202,41 @@ namespace PADIMapNoReduce
                 }
             }
 
-            return (IWorkerService)Activator.GetObject(typeof(IWorkerService), entryUrl);
+			return (IWService)Activator.GetObject(typeof(IWService), entryUrl);
         }
 
         public void slowWorker(int id, int seconds)
         {
             Console.Out.WriteLine("Injecting worker {0} with a delay ...", id);
-            IWorkerService worker = getWorker(id);
+			IWService worker = getWorker(id);
             worker.slowWorker(seconds);
         }
 
         public void freezeWorkerW(int id)
         {
             Console.Out.WriteLine("Freezing worker {0} ...", id);
-            IWorkerService worker = getWorker(id);
+			IWService worker = getWorker(id);
             worker.freezeWorker();
         }
 
         public void unFreezeWorkerW(int id)
         {
             Console.Out.WriteLine("Unfreezing worker {0} ...", id);
-            IWorkerService worker = getWorker(id);
+			IWService worker = getWorker(id);
             worker.unfreezeWorker();
         }
 
         public void freezeWorkerC(int id)
         {
             Console.Out.WriteLine("Freezing worker {0} ...", id);
-            IWorkerService worker = getWorker(id);
+			IWService worker = getWorker(id);
 			worker.freezeCoordinator ();
         }
 
         public void unFreezeWorkerC(int id)
         {
             Console.Out.WriteLine("Unfreezing worker {0} ...", id);
-            IWorkerService worker = getWorker(id);
+			IWService worker = getWorker(id);
             worker.unfreezeCoordinator ();
         }
 

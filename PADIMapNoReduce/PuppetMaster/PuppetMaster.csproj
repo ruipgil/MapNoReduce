@@ -31,10 +31,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup>
-    <StartupObject>
-    </StartupObject>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -85,12 +81,16 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Client\Client.csproj">
+      <Project>{F857807A-62C7-44B0-9740-10638F6EAE4A}</Project>
+      <Name>Client</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Shared\Shared.csproj">
-      <Project>{56971102-adec-45a2-910c-3d0c0e5b5814}</Project>
+      <Project>{56971102-ADEC-45A2-910C-3D0C0E5B5814}</Project>
       <Name>Shared</Name>
     </ProjectReference>
     <ProjectReference Include="..\Worker\Worker.csproj">
-      <Project>{6d744136-c59f-4951-8f05-97c351a7a3ec}</Project>
+      <Project>{6D744136-C59F-4951-8F05-97C351A7A3EC}</Project>
       <Name>Worker</Name>
     </ProjectReference>
   </ItemGroup>

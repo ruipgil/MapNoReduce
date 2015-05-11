@@ -384,6 +384,7 @@ namespace PADIMapNoReduce
 						Console.WriteLine (e);
 					}
 				});
+				//Console.ReadLine();
 			} while(splits.Count > 0 || job.Assignments.Count > 0);
 
 			informReplicas (job, (tracker) => {
