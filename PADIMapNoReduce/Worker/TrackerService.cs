@@ -8,6 +8,7 @@ using System.Threading;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace PADIMapNoReduce
 {
@@ -18,14 +19,14 @@ namespace PADIMapNoReduce
 		HashSet<string> knownWorkers = new HashSet<string> ();
 		Dictionary<string, IWService> workersInstances = new Dictionary<string, IWService>();
 		Dictionary<string, WorkInfo> instanceLoad = new Dictionary<string, WorkInfo> ();
-		//Dictionary<string, Tuple<decimal, int>> knownWorkersLoad = new Dictionary<string, Tuple<decimal, int>> ();
 		HashSet<string> splitsDone = new HashSet<string>();
 
 		const int MAX_TRANSFER_MB = 1;
 		const int N_PARALLEL = 1;
 		const int N_PARALLEL_MAP_PER_JOB = 8;
 		const int LOAD = 10000;
-		public const int TRACKER_OVERHEAD_VS_WORKER = 100;
+		const int TRACKER_OVERHEAD_VS_WORKER = 100;
+		const double WORK_TIME_THRESHOLD = 60000; // 1min
 
 		public string ownAddress;
         
@@ -491,7 +492,7 @@ namespace PADIMapNoReduce
 			instanceLoad.Remove (split.ToString());
 			splitsDone.Add (split.ToString());
 
-			Console.WriteLine ("[Split]<  "+split);
+			Console.WriteLine ("[Split]<  "+split+" in "+Utils.Elapsed(winfo.started)+"ms");
 
 			while(freezeW) {}
 			Async.each (split.Trackers, (tracker) => {

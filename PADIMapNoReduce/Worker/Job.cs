@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 
 namespace PADIMapNoReduce
 {
@@ -55,6 +56,8 @@ namespace PADIMapNoReduce
 		public byte[] MapperCode { get { return mapperCode; } }
 
 		public string Client { get { return clientAddress; } }
+
+		public DateTime Started { get { return started; } }
 
 		public Dictionary<int, string> Assignments { get { return assignments; } }
 
@@ -188,6 +191,7 @@ namespace PADIMapNoReduce
 			foreach (var a in assignments) {
 				str += a.Key +" to " + a.Value + "\n";
 			}
+			str += "Time elapsed: "+Utils.Elapsed(Started)+"ms\n";
 
 			return str;
 		}

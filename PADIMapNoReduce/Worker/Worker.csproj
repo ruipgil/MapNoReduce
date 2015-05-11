@@ -52,6 +52,7 @@
     <Compile Include="WorkStatus.cs" />
     <Compile Include="StatusInfo.cs" />
     <Compile Include="WorkInfo.cs" />
+    <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
