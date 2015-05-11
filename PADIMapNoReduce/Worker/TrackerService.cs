@@ -7,6 +7,7 @@ using System.Runtime.Remoting;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace PADIMapNoReduce
 {
@@ -24,6 +25,7 @@ namespace PADIMapNoReduce
 		const int N_PARALLEL = 1;
 		const int N_PARALLEL_MAP_PER_JOB = 8;
 		const int LOAD = 10000;
+		public const int TRACKER_OVERHEAD_VS_WORKER = 100;
 
 		public string ownAddress;
         
@@ -101,11 +103,6 @@ namespace PADIMapNoReduce
 				knownWorkers.Add (worker);
 			}
 		}
-
-		/*public StatusInfo getStatus(string requester) {
-			addKnownWorkers (new List<string>(){ requester });
-			return new StatusInfo (ownAddress, knownWorkers, GetLoad(), currentJobs.Values.Count);
-		}*/
 
 		public void startHeartbeating() {
             //Disables communication if worker is freezed.
@@ -201,7 +198,7 @@ namespace PADIMapNoReduce
 		public void assignReplica(Job job) {
 			var workers = getWorkersByLoad ();
 			workers.Remove (ownAddress);
-			job.Trackers = workers;
+			job.Trackers = workers.GetRange(0, Math.Min(1, workers.Count));
 			if (job.Trackers.Count > 0) {
 				Async.eachBlocking (job.Trackers.ToList (), (tracker) => {
 					Console.WriteLine ("[Job]Update " + job + " to " + tracker);
@@ -338,16 +335,26 @@ namespace PADIMapNoReduce
 		public void startJob(Job job) {
 			Console.WriteLine ("[Job]> "+job);
 
-			Queue<Split> splits = new Queue<Split>(job.generateSplits ());
-			Console.WriteLine ("[Job]I "+job+" gens "+splits.Count+" splits");
-
+			//Queue<Split> splits = new Queue<Split>(job.generateSplits ());
+			//Console.WriteLine ("[Job]I "+job+" gens "+splits.Count+" splits");
+			var splits = job.generateSplits ();
 			do {
-				splits = new Queue<Split> (job.generateSplits ());
+				splits = /*new Queue<Split> (*/job.generateSplits ()/*)*/;
 
 				Console.WriteLine (job.debugDump ());
-				var wList = getWorkersByLoad ();
-				Async.eachBlocking (wList, (worker) => {
-					Split s = splits.Dequeue ();
+				var wList = new Queue<string>(getWorkersByLoad ());
+				Object workLock = new object();
+				Parallel.ForEach (splits, new ParallelOptions { MaxDegreeOfParallelism = wList.Count }, (s, _, index) => {
+
+					string worker;
+					lock(workLock) {
+						try {
+							worker = wList.Dequeue();
+						} catch( Exception ) {
+							return;
+						}
+					}
+					//Split s = splits.Dequeue ();
 					Console.WriteLine ("[Job]I " + s + " to " + worker);
 					try {
 						while(freezeC) {}
@@ -359,18 +366,24 @@ namespace PADIMapNoReduce
 						w.work (s);
 
 						completedSplit (job.Uuid, s.id);
+						lock(workLock) {
+							wList.Enqueue(worker);
+						}
 					} catch (RemotingException) {
-						splits.Enqueue (s);
-						removeWorkers (worker);
+						lock(workLock) {
+							//wList.Enqueue(worker);
+							//splits.Enqueue (s);
+							removeWorkers (worker);
 
-						informReplicas (job, (tracker) => {
-							getWorker (tracker).deassignSplit (job.Uuid, s.id);
-						});
+							informReplicas (job, (tracker) => {
+								getWorker (tracker).deassignSplit (job.Uuid, s.id);
+							});
+						}
 					} catch (Exception e) {
 
 						Console.WriteLine (e);
 					}
-				}, splits.Count);
+				});
 			} while(splits.Count > 0 || job.Assignments.Count > 0);
 
 			informReplicas (job, (tracker) => {
@@ -439,7 +452,6 @@ namespace PADIMapNoReduce
 
 
             Console.WriteLine ("[Split]> "+split);
-			//Job job = split.Job;
 
 			WorkInfo winfo = new WorkInfo();
 			winfo.started = DateTime.Now;
@@ -490,8 +502,6 @@ namespace PADIMapNoReduce
 				}
 			});
 		}
-
-		public const int TRACKER_OVERHEAD_VS_WORKER = 100;
 
 		public int getLoad () {
 			if (freezeW || freezeC) {
