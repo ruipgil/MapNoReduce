@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
+using System.Collections.Concurrent;
 
 namespace PADIMapNoReduce
 {
@@ -94,6 +95,29 @@ namespace PADIMapNoReduce
 			for (var i = 0; i < limit; i++) {
 				new Thread ();
 			}
+		}*/
+
+		/*public void workDistribution(Action canProceed, List<string> workers, Action effective, int limit) {
+			limit = Math.Min (limit, workers.Count);
+			int i = 0;
+			int current = 0;
+			Action exec;
+			Action next = () => {
+				i++; // lock
+				current++; // lock
+				var th = new Thread(exec);
+
+			};
+			exec = () => {
+				
+				effective (workers [i]);
+				if (canProceed () && current < limit) {
+					next();
+				}
+			};
+			Thread t = new Thread(()=>{
+				
+			});
 		}*/
 	}
 }

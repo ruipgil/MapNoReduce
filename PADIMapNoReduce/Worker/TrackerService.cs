@@ -10,23 +10,15 @@ using System.Reflection;
 
 namespace PADIMapNoReduce
 {
-	public struct WorkInfo {
-		public Split split;
-		public Thread thread;
-		public int remaining;
-        public WorkStatus status;
-		public DateTime started;
-	}
 
-	public class Tracker : MarshalByRefObject, IWorkerService, IWorkingWorkerService
+	public class TrackerService : MarshalByRefObject, IWorkerService, IWService
 	{
 		Dictionary<Guid, Job> currentJobs = new Dictionary<Guid, Job> ();
 		HashSet<string> knownWorkers = new HashSet<string> ();
-		Dictionary<string, IWorkingWorkerService> workersInstances = new Dictionary<string, IWorkingWorkerService>();
+		Dictionary<string, IWService> workersInstances = new Dictionary<string, IWService>();
 		Dictionary<string, WorkInfo> instanceLoad = new Dictionary<string, WorkInfo> ();
-		Dictionary<string, Tuple<decimal, int>> knownWorkersLoad = new Dictionary<string, Tuple<decimal, int>> ();
+		//Dictionary<string, Tuple<decimal, int>> knownWorkersLoad = new Dictionary<string, Tuple<decimal, int>> ();
 		HashSet<string> splitsDone = new HashSet<string>();
-		//Dictionary<string, List<Thread>> executingSplits = new Dictionary<string, List<Thread>>();
 
 		const int MAX_TRANSFER_MB = 1;
 		const int N_PARALLEL = 1;
@@ -40,13 +32,13 @@ namespace PADIMapNoReduce
 		private bool freezeW = false;
 		private bool freezeC = false;
 
-		public Tracker (string myAddress, int port)
+		public TrackerService (string myAddress, int port)
 		{
 			this.ownAddress = myAddress+":"+port+"/W";
 
 			TcpChannel channel = new TcpChannel(port);
 			ChannelServices.RegisterChannel(channel, false);
-			RemotingServices.Marshal(this, "W", typeof(Tracker));
+			RemotingServices.Marshal(this, "W", typeof(TrackerService));
 
 			//knownWorkers.Add (ownAddress);
 			workersInstances.Add (ownAddress, this);
@@ -54,7 +46,7 @@ namespace PADIMapNoReduce
 			Console.WriteLine("Worker created at '"+ownAddress+"'");
 		}
 
-		public Tracker(int port) : this("tcp://localhost", port) {
+		public TrackerService(int port) : this("tcp://localhost", port) {
 		}
 
         public override object InitializeLifetimeService()
@@ -76,7 +68,7 @@ namespace PADIMapNoReduce
 		/// </summary>
 		/// <returns>The worker.</returns>
 		/// <param name="address">Address.</param>
-		public IWorkingWorkerService getWorker(string address) {
+		public IWService getWorker(string address) {
 			//Console.WriteLine ("Getting worker "+address);
 			if(workersInstances.ContainsKey (address)) {
 				if(address.Equals(ownAddress)) {
@@ -85,7 +77,7 @@ namespace PADIMapNoReduce
 				return workersInstances [address];
 			} else {
 				// instantiate worker
-				IWorkingWorkerService worker = (IWorkingWorkerService)Activator.GetObject(typeof(IWorkingWorkerService), address);
+				IWService worker = (IWService)Activator.GetObject(typeof(IWService), address);
 				workersInstances.Add(address, worker);
 				knownWorkers.Add (address);
 				return worker;
@@ -175,7 +167,7 @@ namespace PADIMapNoReduce
 
 			workers.Remove (ownAddress);
 			workers.ForEach (w=>knownWorkers.Remove(w));
-			workers.ForEach (w=>knownWorkersLoad.Remove(w));
+			//workers.ForEach (w=>knownWorkersLoad.Remove(w));
 
 			var toTakeControl = currentJobs.Values.Where (job=>{
 				return workers.Contains(job.Coordinator) &&
@@ -358,6 +350,7 @@ namespace PADIMapNoReduce
 					Split s = splits.Dequeue ();
 					Console.WriteLine ("[Job]I " + s + " to " + worker);
 					try {
+						while(freezeC) {}
 						job.assign (s.id, worker);
 						var w = getWorker (worker);
 						informReplicas (job, (tracker) => {
@@ -409,11 +402,11 @@ namespace PADIMapNoReduce
 		private delegate IList<KeyValuePair<string, string>> MapFn(string line);
 
 		private MapFn buildMapperInstance(Split split) {
-			Assembly assembly = Assembly.Load(split.Job.MapperCode);
+			Assembly assembly = Assembly.Load(split.mapperCode);
 			// Walk through each type in the assembly looking for our class
 			foreach (Type type in assembly.GetTypes()) {
 				if (type.IsClass == true) {
-					if (type.FullName.EndsWith("." + split.Job.MapperName)) {
+					if (type.FullName.EndsWith("." + split.mapperName)) {
 						object ClassObj = Activator.CreateInstance(type);
 						MapFn callback = (line)=> {
 							object[] args = new object[] { line };
@@ -446,7 +439,7 @@ namespace PADIMapNoReduce
 
 
             Console.WriteLine ("[Split]> "+split);
-			Job job = split.Job;
+			//Job job = split.Job;
 
 			WorkInfo winfo = new WorkInfo();
 			winfo.started = DateTime.Now;
@@ -460,7 +453,7 @@ namespace PADIMapNoReduce
 
 			var results = new ConcurrentQueue<IList<KeyValuePair<string, string>>> ();
 
-			var client = (IClientService)Activator.GetObject (typeof(IClientService), job.Client);
+			var client = (IClientService)Activator.GetObject (typeof(IClientService), split.Client);
 			var lines = client.get(split.lower, split.upper);
 
 			winfo.status = WorkStatus.Mapping;
@@ -488,10 +481,10 @@ namespace PADIMapNoReduce
 			Console.WriteLine ("[Split]<  "+split);
 
 			while(freezeW) {}
-			Async.each (job.Trackers, (tracker) => {
+			Async.each (split.Trackers, (tracker) => {
 				Console.WriteLine ("[Split]I  "+split+" to "+tracker);
 				try {
-					getWorker (tracker).completedSplit (job.Uuid, split.id);
+					getWorker (tracker).completedSplit (split.jobUuid, split.id);
 				} catch(RemotingException) {
 					removeWorkers(tracker);
 				}

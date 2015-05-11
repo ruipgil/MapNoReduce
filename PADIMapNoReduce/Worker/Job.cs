@@ -192,38 +192,5 @@ namespace PADIMapNoReduce
 			return str;
 		}
 	}
-
-	[Serializable]
-	public class Split {
-		public int id;
-		public Job Job;
-		public int lower;
-		public int upper;
-		//public List<string> values;
-
-		public Split(Job jobUuid, int id, int lower, int upper) {
-			this.Job = jobUuid;
-			this.id = id;
-			this.lower = lower;
-			this.upper = upper;
-		}
-
-		/*public void addValue(string value) {
-			values.Add (value);
-		}*/
-
-		public override string ToString() {
-			return Job.Uuid.ToString ()+"#"+id;
-		}
-	}
-
-	public enum WorkStatus
-	{
-		Getting,
-		Sending,
-		Mapping,
-		Inexistent,
-		Done
-	}
 }
 

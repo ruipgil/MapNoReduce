@@ -11,20 +11,15 @@ namespace PADIMapNoReduce
     /// </summary>
     public interface IWorkerService
     {
+		/// <summary>
+		/// Submits a job to a worker.
+		/// </summary>
+		/// <param name="clientAddress">Client address.</param>
+		/// <param name="inputSize">Input size.</param>
+		/// <param name="fileSize">File size.</param>
+		/// <param name="splits">Splits.</param>
+		/// <param name="code">Code.</param>
+		/// <param name="mapperName">Mapper name.</param>
 		void submit(string clientAddress, int inputSize, long fileSize, int splits, byte[] code, string mapperName);
-
-        void freezeWorker();
-
-        void unfreezeWorker();
-
-		void freezeCoordinator();
-
-		void unfreezeCoordinator();
-
-        void slowWorker(int seconds);
-
-        void getStatus();
-        void getStatus(bool propagate);
-        
     }
 }
