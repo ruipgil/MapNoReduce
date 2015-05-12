@@ -11,7 +11,6 @@ namespace PADIMapNoReduce
     public class Controller
 
     {
-        private int workerPortNr = 30001;
         List<KeyValuePair<int, string>> workerIds = new List<KeyValuePair<int, string>>();
         private bool isRunningScript = false;
         private int step = 0;
@@ -77,33 +76,35 @@ namespace PADIMapNoReduce
 
         public void executeCommand(String command)
         {
-            string[] splits = command.Split(new string[] { " " }, 2, StringSplitOptions.None);
+            string[] splits = command.Split(' ');
             if (splits[0].StartsWith("%")) { }
             if (splits[0].Equals("WORKER"))
             {
-                string[] tempSplits = splits[1].Split(new string[] { " " }, 4, StringSplitOptions.None);
                 Console.Out.WriteLine("Creating Worker...");
+                var id = splits[1];
+                var workerUrl = splits[3];
+                var knows = splits.Length>4?splits[4]:"";
+                var puppetMaster = splits[2];
+                Console.WriteLine(id+" "+workerUrl+" "+knows+" "+puppetMaster);
 
-                //SAVE WORKER ID
-                KeyValuePair<int, string> kvpair = new KeyValuePair<int, string>(int.Parse(tempSplits[0]), tempSplits[2]);
+                KeyValuePair<int, string> kvpair = new KeyValuePair<int, string>(int.Parse(id), workerUrl);
                 workerIds.Add(kvpair);
 
-                String pmEntryUrl = tempSplits[1];
-                IPuppetMasterService pm = (IPuppetMasterService)Activator.GetObject(typeof(IPuppetMasterService), pmEntryUrl);
-                var wa = tempSplits[2].Split(':')[1].Split('/')[0];
-				pm.createWorker(tempSplits[2], (tempSplits.Length>3?tempSplits[3]:"") + " -a " + wa);
+                IPuppetMasterService pm = (IPuppetMasterService)Activator.GetObject(typeof(IPuppetMasterService), puppetMaster);
+                pm.createWorker(workerUrl, knows+" -a "+string.Join(":", workerUrl.Split(':'), 0, 2));
+
+                Thread.Sleep(1000);
 
             }
             if (splits[0].Equals("SUBMIT"))
             {
                 Console.Out.WriteLine("Submitting job...");
-                string[] tempSplits = splits[1].Split(new string[] { " " }, 6, StringSplitOptions.None);
-                string workerEntryUrl = tempSplits[0];
-                string inputFile = tempSplits[1];
-                string outputFolder = tempSplits[2];
-                int nrSplits = int.Parse(tempSplits[3]);
-                string mapName = tempSplits[4];
-                string mapPath = tempSplits[5];
+                string workerEntryUrl = splits[1];
+                string inputFile = splits[2];
+                string outputFolder = splits[3];
+                int nrSplits = int.Parse(splits[4]);
+                string mapName = splits[5];
+                string mapPath = splits[6];
                 byte[] code = System.IO.File.ReadAllBytes(mapPath);
 
                 var client = new ClientService(10001);
@@ -150,6 +151,8 @@ namespace PADIMapNoReduce
             }
         }
 
+        public int workerPortNr = 30001;
+
         public void createWorker()
         {
             String s = Convert.ToString(workerPortNr);
@@ -168,15 +171,10 @@ namespace PADIMapNoReduce
         
         public void createWorker(string url, string args)
         {
-            //TODO IMPROVE THIS : Only works for localhost (i think)
-            String[] splits = url.Split(new string[] { ":" }, 3, StringSplitOptions.None);
-            String[] splits2 = splits[2].Split(new string[] { "/" }, 2, StringSplitOptions.None);
-            int port = int.Parse(splits2[0]);
-            String s = splits2[0] + " " + args;
-            /*string[] args = new string[1];
-            args[0] = s;*/
+            string port = url.Split(':')[2].Split('/')[0];
             Console.Out.WriteLine("Creating Worker @ port {0}", port);
-            Process.Start("Worker.exe", s);
+            Console.WriteLine(port + " " + args);
+            Process.Start("Worker.exe", port + " "+args);
 
         }
 
@@ -186,7 +184,7 @@ namespace PADIMapNoReduce
             foreach (KeyValuePair<int, string> pair in workerIds)
             {
 				IWService worker = (IWService)Activator.GetObject(typeof(IWService), pair.Value);
-                worker.getStatus(true);
+                worker.getStatus();
             }
         }
 

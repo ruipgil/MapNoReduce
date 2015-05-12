@@ -113,11 +113,5 @@ namespace PADIMapNoReduce
 		/// Gets the status.
 		/// </summary>
 		void getStatus();
-
-		/// <summary>
-		/// Gets the status.
-		/// </summary>
-		/// <param name="propagate">If set to <c>true</c> propagate.</param>
-		void getStatus(bool propagate);
     }
 }
