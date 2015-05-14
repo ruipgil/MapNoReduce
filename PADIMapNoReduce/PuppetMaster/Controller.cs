@@ -11,10 +11,11 @@ namespace PADIMapNoReduce
     public class Controller
 
     {
-        List<KeyValuePair<int, string>> workerIds = new List<KeyValuePair<int, string>>();
+        Dictionary<int, string> workerIds = new Dictionary<int, string>();
         private bool isRunningScript = false;
         private int step = 0;
-        System.IO.StreamReader fileStep; 
+        System.IO.StreamReader fileStep;
+        ClientService client = new ClientService(10001);
 
         public void run()
         {
@@ -49,6 +50,7 @@ namespace PADIMapNoReduce
         public void runScript(String location)
         {
             Console.Out.WriteLine("Running Script...");
+            workerIds.Clear();
             //String line;
            // System.IO.StreamReader file = new System.IO.StreamReader(location);
 
@@ -77,6 +79,7 @@ namespace PADIMapNoReduce
         public void executeCommand(String command)
         {
             string[] splits = command.Split(' ');
+            Console.WriteLine(command);
             if (splits[0].StartsWith("%")) { }
             if (splits[0].Equals("WORKER"))
             {
@@ -87,8 +90,7 @@ namespace PADIMapNoReduce
                 var puppetMaster = splits[2];
                 Console.WriteLine(id+" "+workerUrl+" "+knows+" "+puppetMaster);
 
-                KeyValuePair<int, string> kvpair = new KeyValuePair<int, string>(int.Parse(id), workerUrl);
-                workerIds.Add(kvpair);
+                workerIds.Add(int.Parse(id), workerUrl);
 
                 IPuppetMasterService pm = (IPuppetMasterService)Activator.GetObject(typeof(IPuppetMasterService), puppetMaster);
                 pm.createWorker(workerUrl, knows+" -a "+string.Join(":", workerUrl.Split(':'), 0, 2));
@@ -107,7 +109,7 @@ namespace PADIMapNoReduce
                 string mapPath = splits[6];
                 byte[] code = System.IO.File.ReadAllBytes(mapPath);
 
-                var client = new ClientService(10001);
+                
 				//var next = false;
                 client.init(workerEntryUrl);
                 client.submit(inputFile, outputFolder, nrSplits, code, mapName, () => {
@@ -147,7 +149,7 @@ namespace PADIMapNoReduce
             }
             if (splits[0].Equals("UNFREEZEC"))
             {
-                freezeWorkerC(int.Parse(splits[1]));
+                unFreezeWorkerC(int.Parse(splits[1]));
             }
         }
 
@@ -183,59 +185,49 @@ namespace PADIMapNoReduce
             Console.Out.WriteLine("Obtaining the workers and job trackers status");
             foreach (KeyValuePair<int, string> pair in workerIds)
             {
-				IWService worker = (IWService)Activator.GetObject(typeof(IWService), pair.Value);
+                IRemoteTesting worker = (IRemoteTesting)Activator.GetObject(typeof(IRemoteTesting), pair.Value);
                 worker.getStatus();
             }
         }
 
 		public IWService getWorker(int id)
         {
-            string entryUrl = null;
-            //get entry url for the worker id
-            foreach (KeyValuePair<int, string> pair in workerIds)
-            {
-                if (id == pair.Key)
-                {
-                    entryUrl = pair.Value;
-                }
-            }
-
-			return (IWService)Activator.GetObject(typeof(IWService), entryUrl);
+			return (IWService)Activator.GetObject(typeof(IWService), workerIds[id]);
         }
 
         public void slowWorker(int id, int seconds)
         {
             Console.Out.WriteLine("Injecting worker {0} with a delay ...", id);
-			IWService worker = getWorker(id);
+            IRemoteTesting worker = (IRemoteTesting)Activator.GetObject(typeof(IRemoteTesting), workerIds[id]);
             worker.slowWorker(seconds);
         }
 
         public void freezeWorkerW(int id)
         {
             Console.Out.WriteLine("Freezing worker {0} ...", id);
-			IWService worker = getWorker(id);
+            IRemoteTesting worker = (IRemoteTesting)Activator.GetObject(typeof(IRemoteTesting), workerIds[id]);
             worker.freezeWorker();
         }
 
         public void unFreezeWorkerW(int id)
         {
             Console.Out.WriteLine("Unfreezing worker {0} ...", id);
-			IWService worker = getWorker(id);
+            IRemoteTesting worker = (IRemoteTesting)Activator.GetObject(typeof(IRemoteTesting), workerIds[id]);
             worker.unfreezeWorker();
         }
 
         public void freezeWorkerC(int id)
         {
             Console.Out.WriteLine("Freezing worker {0} ...", id);
-			IWService worker = getWorker(id);
-			worker.freezeCoordinator ();
+            IRemoteTesting worker = (IRemoteTesting)Activator.GetObject(typeof(IRemoteTesting), workerIds[id]);
+            worker.freezeCoordinator();
         }
 
         public void unFreezeWorkerC(int id)
         {
             Console.Out.WriteLine("Unfreezing worker {0} ...", id);
-			IWService worker = getWorker(id);
-            worker.unfreezeCoordinator ();
+            IRemoteTesting worker = (IRemoteTesting)Activator.GetObject(typeof(IRemoteTesting), workerIds[id]);
+            worker.unfreezeCoordinator();
         }
 
     }

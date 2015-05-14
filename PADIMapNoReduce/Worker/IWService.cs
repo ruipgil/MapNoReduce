@@ -40,6 +40,8 @@ namespace PADIMapNoReduce
 		/// <param name="job">Job.</param>
 		void completedJob(Guid job);
 
+        void completedJobs(HashSet<Guid> job);
+
 		/// <summary>
 		/// Announces the job to a tracker.
 		/// The receiver should either add it or, in case it already as, uppdate it.
@@ -82,37 +84,6 @@ namespace PADIMapNoReduce
 		/// </summary>
 		/// <returns>The load.</returns>
 		int getLoad();
-
-		/// <summary>
-		/// Freezes the worker.
-		/// </summary>
-		void freezeWorker();
-
-		/// <summary>
-		/// Unfreezes the worker.
-		/// </summary>
-		void unfreezeWorker();
-
-		/// <summary>
-		/// Freezes the coordinator.
-		/// </summary>
-		void freezeCoordinator();
-
-		/// <summary>
-		/// Unfreezes the coordinator.
-		/// </summary>
-		void unfreezeCoordinator();
-
-		/// <summary>
-		/// Slows the worker.
-		/// </summary>
-		/// <param name="seconds">Seconds.</param>
-		void slowWorker(int seconds);
-
-		/// <summary>
-		/// Gets the status.
-		/// </summary>
-		void getStatus();
 
 		void cancelSplit(Guid job, int split);
     }

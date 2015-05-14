@@ -13,9 +13,10 @@ using System.Diagnostics;
 namespace PADIMapNoReduce
 {
 
-	public class TrackerService : MarshalByRefObject, IWorkerService, IWService
+    public class TrackerService : MarshalByRefObject, IWorkerService, IWService, IRemoteTesting
 	{
 		Dictionary<Guid, Job> currentJobs = new Dictionary<Guid, Job> ();
+        HashSet<Guid> jobsCompleted = new HashSet<Guid>();
 		HashSet<string> knownWorkers = new HashSet<string> ();
 		Dictionary<string, IWService> workersInstances = new Dictionary<string, IWService>();
 		Dictionary<string, WorkInfo> instanceLoad = new Dictionary<string, WorkInfo> ();
@@ -33,13 +34,16 @@ namespace PADIMapNoReduce
         
         private int slow = 0;
 		private bool freezeW = false;
-		private bool freezeC = false;
+        ManualResetEvent freezeC = new ManualResetEvent(true);
+        ManualResetEvent freezeW_ = new ManualResetEvent(true);
+		//private bool freezeC = false;
+        TcpChannel channel;
 
 		public TrackerService (string myAddress, int port)
 		{
 			this.ownAddress = myAddress+":"+port+"/W";
 
-			TcpChannel channel = new TcpChannel(port);
+			channel = new TcpChannel(port);
 			ChannelServices.RegisterChannel(channel, false);
 			RemotingServices.Marshal(this, "W", typeof(TrackerService));
 
@@ -47,10 +51,6 @@ namespace PADIMapNoReduce
 			workersInstances.Add (ownAddress, this);
 
 			Console.WriteLine("Worker created at '"+ownAddress+"'");
-
-			if (port == 30003) {
-				slow = 10;
-			}
 		}
 
 		public TrackerService(int port) : this("tcp://localhost", port) {
@@ -63,7 +63,23 @@ namespace PADIMapNoReduce
 
 		public void addKnownWorkers(List<string> workers) {
 			workers.Remove (ownAddress);
-			workers.ForEach (w=>knownWorkers.Add(w));
+            workers.ForEach(w =>
+            {
+                if (!knownWorkers.Contains(w))
+                {
+                    knownWorkers.Add(w);
+                }
+                else if(jobsCompleted.Count>0)
+                {
+                    // new worker or returnign one, send completed jobs
+                    try
+                    {
+                        IWService worker = (IWService)Activator.GetObject(typeof(IWService), w);
+                        worker.completedJobs(jobsCompleted);
+                    }
+                    catch (Exception) { }
+                }
+            });
 
 			currentJobs.Values.Where (job=>{
 				return job.Trackers.Count == 0;
@@ -76,8 +92,8 @@ namespace PADIMapNoReduce
 		/// <returns>The worker.</returns>
 		/// <param name="address">Address.</param>
 		public IWService getWorker(string address) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
+
 			//Console.WriteLine ("Getting worker "+address);
 			if(workersInstances.ContainsKey (address)) {
 				if(address.Equals(ownAddress)) {
@@ -94,8 +110,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void heartbeat(string workerAddress) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
 			//Console.WriteLine (" # Received heartbeat of "+workerAddress);
 			if (!knownWorkers.Contains (workerAddress)) {
@@ -104,19 +119,16 @@ namespace PADIMapNoReduce
 		}
 
 		public void shareKnownWorkers(string sender, HashSet<string> workers) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
-			workers.Remove (ownAddress);
-			workers.Add (sender);
-			foreach(var worker in workers) {
-				knownWorkers.Add (worker);
-			}
+            workers.Remove(ownAddress);
+            workers.Add(sender);
+
+            addKnownWorkers(workers.ToList());
 		}
 
 		public void startHeartbeating() {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 			
 			List<string> toHeartbeat = new List<string> ();
 			foreach (var job in currentJobs.Values) {
@@ -126,7 +138,7 @@ namespace PADIMapNoReduce
 			toHeartbeat = toHeartbeat.Distinct ().ToList ();
 			toHeartbeat.Remove (ownAddress);
 
-			//Console.WriteLine (" # Heartbeat ["+toHeartbeat.Count+"] "+string.Join (" ", toHeartbeat.ToArray()));
+			Console.WriteLine (" # Heartbeat ["+toHeartbeat.Count+"] "+string.Join (" ", toHeartbeat.ToArray()));
 			if (toHeartbeat.Count < 1) {
 				return;
 			}
@@ -134,9 +146,11 @@ namespace PADIMapNoReduce
 			var workersToDealWith = new List<string> ();
 			Async.eachBlocking (toHeartbeat, (worker)=>{
 				try {
+                    Console.WriteLine("Heartbeating: " + worker);
 					getWorker(worker).heartbeat(ownAddress);
+                    Console.WriteLine("Success: " + worker);
 				} catch(Exception) {
-					//Console.WriteLine ("# A worker is down: "+worker);
+					Console.WriteLine ("# A worker is down: "+worker);
 					workersToDealWith.Add (worker);
 				}
 			});
@@ -145,8 +159,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void startSharingKnownWorkers() {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
 			Async.eachBlocking (knownWorkers.ToList(), (worker)=> {
 				try {
@@ -223,8 +236,7 @@ namespace PADIMapNoReduce
 		/// </summary>
 		/// <param name="jobUuid">Job id.</param>
 		public void takeOwnershipOfJob(Job job) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
 			Console.WriteLine ("[Job]Taking ownership of "+job);
 			Console.WriteLine ("\n"+job.debugDump ());
@@ -254,8 +266,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void completedSplit(Guid job, int split) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
 			var splitId = job + "#" + split;
 			Console.WriteLine ("[Split]C "+splitId);
@@ -266,16 +277,23 @@ namespace PADIMapNoReduce
 		}
 
 		public void completedJob(Guid job) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
 			Console.WriteLine ("[Job]C " + job);
 			currentJobs.Remove (job);
+            jobsCompleted.Add(job);
 		}
 
+        public void completedJobs(HashSet<Guid> jobs)
+        {
+            foreach (var job in currentJobs.Keys.Intersect(jobs))
+            {
+                completedJob(job);
+            }
+        }
+
 		public void announceJob(Job job) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
 			Console.WriteLine ("[Job]Announced "+job);
 			Console.WriteLine ("\n"+job.debugDump ());
@@ -291,8 +309,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void submit(string clientAddress, int inputSize, long fileSize,  int splits, byte[] code, string mapperName) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
             
 			Console.WriteLine ("[Submit]\n\tClient: "+clientAddress+"\n\tLines: "+inputSize+"\n\tSize: "+fileSize+" Bytes\n\tMapper Name: "+mapperName);
 			Job job = new Job (ownAddress, clientAddress, inputSize, fileSize, splits, mapperName, code);
@@ -307,6 +324,7 @@ namespace PADIMapNoReduce
 		}
 
 		public List<string> getWorkersByLoad() {
+            freezeC.WaitOne();
 			var workers = new List<Tuple<string, int>> ();
 			Async.eachBlocking (knownWorkers.ToList (), (worker) => {
 				//Console.WriteLine(worker);
@@ -326,8 +344,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void assignSplit(Guid jobId, int splitId, string worker) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
 			if (currentJobs.ContainsKey (jobId)) {
 				var job = currentJobs [jobId];
@@ -336,8 +353,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void deassignSplit(Guid jobId, int split) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
 			if (currentJobs.ContainsKey (jobId)) {
 				var job = currentJobs [jobId];
@@ -346,8 +362,7 @@ namespace PADIMapNoReduce
 		}
 
 		public void informReplicas(Job job, Action<string> action) {
-			while (freezeC) {
-			}
+            freezeC.WaitOne();
 
 			if( job.hasReplicas() ) {
 				Async.eachBlocking (job.Trackers, (w)=>{
@@ -366,12 +381,9 @@ namespace PADIMapNoReduce
 			List<Split> splits;
 			do {
 				splits = job.generateSplits ();
-				//Console.WriteLine(splits.Count);
-
 				var wList = new Queue<string>(getWorkersByLoad ());
-				//Console.WriteLine(wList.Count);
-				Console.WriteLine(wList.Count+", "+splits.Count+" :"+Math.Min(wList.Count, splits.Count));
 				var inParallels = Math.Min(wList.Count, splits.Count);
+
 				if(inParallels==0){
 					continue;
 				}
@@ -511,10 +523,11 @@ namespace PADIMapNoReduce
 		}
 
 		public void work(Split split) {
+            freezeW_.WaitOne();
 
 			if (instanceLoad.ContainsKey (split.ToString ())) {
 				Console.WriteLine ("[Split]Join "+split);
-				instanceLoad[split.ToString()].thread.Join();
+				//instanceLoad[split.ToString()].thread.Join();
 				return;
 			}
 
@@ -523,24 +536,37 @@ namespace PADIMapNoReduce
 			WorkInfo winfo = new WorkInfo(split, Thread.CurrentThread);
 			instanceLoad.Add (split.ToString(), winfo);
 
-			MapFn map = buildMapperInstance(split);
+            MapFn map;
+            try
+            {
+                map = buildMapperInstance(split);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return;
+            }
 
 			var results = new ConcurrentQueue<IList<KeyValuePair<string, string>>> ();
 
+            freezeW_.WaitOne();
 			var client = (IClientService)Activator.GetObject (typeof(IClientService), split.Client);
 			var lines = client.get(split.lower, split.upper);
 
 			winfo.status = WorkStatus.Mapping;
             
 			Async.eachLimitBlocking(lines, (line)=>{
+                freezeW_.WaitOne();
 				if(slow!=0) {
 					Thread.Sleep(slow);
 					slow = 0;
 				}
 				results.Enqueue(map (line));
 				winfo.remaining--;
+                //Console.WriteLine(winfo.remaining);
 			}, Math.Min(N_PARALLEL_MAP_PER_JOB, winfo.remaining));
 
+            freezeW_.WaitOne();
             winfo.status = WorkStatus.Sending;
 			// data replication:
 			//  - start sending client and at the same time send copy to trackers
@@ -557,7 +583,9 @@ namespace PADIMapNoReduce
 
 			Console.WriteLine ("[Split]<  "+split+" in "+Utils.Elapsed(winfo.started)+"ms");
 
+            freezeW_.WaitOne();
 			Async.each (split.Trackers, (tracker) => {
+                freezeW_.WaitOne();
 				Console.WriteLine ("[Split]I  "+split+" to "+tracker);
 				try {
 					var w = (IWService)Activator.GetObject(typeof(IWService), tracker);
@@ -580,36 +608,50 @@ namespace PADIMapNoReduce
 
 		public void freezeWorker()
 		{
-			if (freezeW) {
+            Console.WriteLine("FREEZING W");
+            freezeW_.Reset();
+			/*if (freezeW) {
 				return;
 			} else {
 				freezeW = true;
 			}
 			foreach (var work in instanceLoad.Values) {
-				work.thread.Interrupt ();
-			}
+                Console.WriteLine("FREEZING " + work.split);
+                work.thread.Suspend();
+			}*/
 		}
 
 		public void unfreezeWorker()
 		{
-			if (!freezeW) {
+            Console.WriteLine("UNFREEZING W");
+			/*if (freezeW) {
 				freezeW = false;
 			} else {
 				return;
 			}
+            Console.WriteLine("UNFREEZING W 2");
 			foreach (var work in instanceLoad.Values) {
-				new Thread (() => work.thread.Join ());
-			}
+                Console.WriteLine("UNFREEZING "+work.split);
+				//new Thread (() => work.thread.Join ());
+                work.thread.Resume();
+			}*/
+            freezeW_.Set();
 		}
 
 		public void freezeCoordinator()
 		{
-			freezeC = true;
+            Console.WriteLine("FREEZING COORDINATOR");
+			freezeC.Reset();
+            //ChannelServices.UnregisterChannel(channel);
+            RemotingServices.Marshal(this, "W", typeof(IRemoteTesting));
 		}
 
 		public void unfreezeCoordinator()
 		{
-			freezeC = false;
+            Console.WriteLine("UNFREEZING COORDINATOR");
+            //ChannelServices.RegisterChannel(channel, false);
+            RemotingServices.Marshal(this, "W", typeof(TrackerService));
+			freezeC.Set();
 		}
         
         public void getStatus()
