@@ -50,9 +50,9 @@
     <Compile Include="IWService.cs" />
     <Compile Include="Split.cs" />
     <Compile Include="WorkStatus.cs" />
-    <Compile Include="StatusInfo.cs" />
     <Compile Include="WorkInfo.cs" />
     <Compile Include="Utils.cs" />
+    <Compile Include="SplitStatusMessage.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

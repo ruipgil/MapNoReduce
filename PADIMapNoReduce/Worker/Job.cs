@@ -23,6 +23,7 @@ namespace PADIMapNoReduce
 		private List<string> trackers = new List<string>();
 
 		private Dictionary<int, string> assignments = new Dictionary<int, string>();
+		private Dictionary<int, DateTime> assignmentsTime = new Dictionary<int, DateTime>();
 
 		public Job(string coordinatorAddress, string clientAddress, int inputSize, long fileSize, int nSplits, string mapperName, byte[] mapperCode) {
 			uuid = System.Guid.NewGuid ();
@@ -60,11 +61,13 @@ namespace PADIMapNoReduce
 		public DateTime Started { get { return started; } }
 
 		public Dictionary<int, string> Assignments { get { return assignments; } }
+		public Dictionary<int, DateTime> AssignmentsTime { get { return assignmentsTime; } }
 
 		public bool assign(int split, string worker) {
 			if (assignments.ContainsKey (split)) {
 				return false;
 			} else {
+				assignmentsTime.Add (split, DateTime.Now);
 				assignments.Add (split, worker);
 				return true;
 			}
@@ -72,6 +75,7 @@ namespace PADIMapNoReduce
 
 		public bool deassign(int split) {
 			if (assignments.ContainsKey (split)) {
+				assignmentsTime.Remove (split);
 				assignments.Remove (split);
 				return true;
 			} else {
@@ -86,7 +90,10 @@ namespace PADIMapNoReduce
 					toRemove.Add(assignment.Key);
 				}
 			}
-			toRemove.ForEach (i => assignments.Remove (i));
+			toRemove.ForEach (i => {
+				assignments.Remove (i);
+				assignmentsTime.Remove (i);
+			});
 		}
 
 		public bool hasReplicas() {
@@ -96,6 +103,7 @@ namespace PADIMapNoReduce
 		public bool splitCompleted(int split) {
 			splitsCompleted.Add (split);
 			assignments.Remove (split);
+			assignmentsTime.Remove (split);
 			return splitsCompleted.Count>nSplits;
 		}
 

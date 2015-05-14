@@ -26,7 +26,8 @@ namespace PADIMapNoReduce
 		const int N_PARALLEL_MAP_PER_JOB = 8;
 		const int LOAD = 10000;
 		const int TRACKER_OVERHEAD_VS_WORKER = 100;
-		const double WORK_TIME_THRESHOLD = 60 * 1000; // 60secs
+		const double WORK_TIME_THRESHOLD = 3 * 1000; // 60secs
+		const float WORK_PROGRESS_THRESHOLD = 0.01f;
 
 		public string ownAddress;
         
@@ -46,6 +47,10 @@ namespace PADIMapNoReduce
 			workersInstances.Add (ownAddress, this);
 
 			Console.WriteLine("Worker created at '"+ownAddress+"'");
+
+			if (port == 30003) {
+				slow = 10;
+			}
 		}
 
 		public TrackerService(int port) : this("tcp://localhost", port) {
@@ -150,6 +155,15 @@ namespace PADIMapNoReduce
 			});
 		}
 
+		public void cancelSplit(Guid job, int split) {
+			var id = job + "#" + split;
+			if (instanceLoad.ContainsKey (id)) {
+				Console.WriteLine ("canceling "+id);
+				instanceLoad [id].thread.Abort();
+				instanceLoad.Remove (id);
+			}
+		}
+
 		/// <summary>
 		/// Removes workers from the known worker list.
 		/// It will check if any of these workers are coordinator. If any of them is, it will check
@@ -209,6 +223,9 @@ namespace PADIMapNoReduce
 		/// </summary>
 		/// <param name="jobUuid">Job id.</param>
 		public void takeOwnershipOfJob(Job job) {
+			while (freezeC) {
+			}
+
 			Console.WriteLine ("[Job]Taking ownership of "+job);
 			Console.WriteLine ("\n"+job.debugDump ());
 
@@ -217,15 +234,15 @@ namespace PADIMapNoReduce
 			job.Coordinator = ownAddress;
 
 			foreach (var assignment in job.Assignments.ToDictionary(a=>a.Key, a=>a.Value)) {
-				var status = WorkStatus.Inexistent;
+				SplitStatusMessage status = new SplitStatusMessage (WorkStatus.Inexistent);
 				try {
 					status = getWorker(assignment.Value).getSplitStatus (job.Uuid, assignment.Key);
 				} catch(Exception) {
 					removeWorkers (assignment.Value);
 				}
-				if (status == WorkStatus.Done || status == WorkStatus.Inexistent) {
+				if (status.status == WorkStatus.Done || status.status == WorkStatus.Inexistent) {
 					job.Assignments.Remove (assignment.Key);
-					if (status == WorkStatus.Done) {
+					if (status.status == WorkStatus.Done) {
 						job.splitCompleted (assignment.Key);
 					}
 				}
@@ -281,7 +298,10 @@ namespace PADIMapNoReduce
 			Job job = new Job (ownAddress, clientAddress, inputSize, fileSize, splits, mapperName, code);
 			currentJobs.Add (job.Uuid, job);
 
+			Console.WriteLine ("assigning replica");
 			assignReplica (job);
+
+			Console.WriteLine ("starting job");
 
 			Async.ExecInThread(() => startJob (job));
 		}
@@ -289,13 +309,18 @@ namespace PADIMapNoReduce
 		public List<string> getWorkersByLoad() {
 			var workers = new List<Tuple<string, int>> ();
 			Async.eachBlocking (knownWorkers.ToList (), (worker) => {
+				//Console.WriteLine(worker);
 				try {
 					workers.Add (new Tuple<string, int> (worker, getWorker (worker).getLoad ()));
+					//Console.WriteLine("?");
 				} catch(Exception) {
+					//Console.WriteLine("?!!");
 					removeWorkers(worker);
 				}
 			});
+			//Console.WriteLine ("_---"+workers.Count);
 			workers.Add (new Tuple<string, int>(ownAddress,getLoad()));
+			//Console.WriteLine ("_---"+workers.Count);
 
 			return workers.OrderByDescending (x => x.Item2).Select(x=>x.Item1).ToList();
 		}
@@ -341,13 +366,20 @@ namespace PADIMapNoReduce
 			List<Split> splits;
 			do {
 				splits = job.generateSplits ();
+				//Console.WriteLine(splits.Count);
 
 				var wList = new Queue<string>(getWorkersByLoad ());
-				Object workLock = new object();
-				Parallel.ForEach (splits, new ParallelOptions { MaxDegreeOfParallelism = wList.Count }, (s, _, index) => {
+				//Console.WriteLine(wList.Count);
+				Console.WriteLine(wList.Count+", "+splits.Count+" :"+Math.Min(wList.Count, splits.Count));
+				var inParallels = Math.Min(wList.Count, splits.Count);
+				if(inParallels==0){
+					continue;
+				}
+
+				Parallel.ForEach (splits, new ParallelOptions { MaxDegreeOfParallelism = Math.Min(wList.Count, splits.Count) }, (s, _, index) => {
 
 					string worker;
-					lock(workLock) {
+					lock(wList) {
 						try {
 							worker = wList.Dequeue();
 						} catch( Exception ) {
@@ -362,14 +394,63 @@ namespace PADIMapNoReduce
 						informReplicas (job, (tracker) => {
 							getWorker (tracker).assignSplit (job.Uuid, s.id, worker);
 						});
+
+						bool ps = false;
+						SplitStatusMessage pastStatus = new SplitStatusMessage(WorkStatus.Inexistent);
+
+						bool success = false;
+						var wt = new ThreadStart(()=>{
+							try {
+								w.work(s);
+								success = true;
+								completedSplit (job.Uuid, s.id);
+								lock(wList) {
+									wList.Enqueue(worker);
+								}
+							} catch (Exception) {
+								lock(wList) {
+									removeWorkers (worker);
+
+									informReplicas (job, (tracker) => {
+										getWorker (tracker).deassignSplit (job.Uuid, s.id);
+									});
+								}
+							}
+						});
+						var thr = new Thread(wt);
+
+						/*var timer = new System.Timers.Timer(2000);
+						timer.Elapsed += (source, e)=>{
+							var status = w.getSplitStatus(job.Uuid, s.id);
+							if( ps ) {
+								if(pastStatus.remaining<=status.remaining) {
+									Console.WriteLine("Mark split! "+s+" "+_);
+									deassignSplit(job.Uuid, s.id);
+									w.cancelSplit(job.Uuid, s.id);
+									informReplicas(job, (t)=>getWorker(t).deassignSplit(job.Uuid, s.id));
+									timer.Enabled=false;
+									thr.Abort();
+								}
+							} else {
+								ps = true;
+								pastStatus = status;
+							}
+						};*/
+
+						//timer.Enabled = true;
+						//thr.Start();
+						//thr.Join();
 						w.work (s);
 
 						completedSplit (job.Uuid, s.id);
-						lock(workLock) {
+						lock(wList) {
 							wList.Enqueue(worker);
 						}
+						//timer.Enabled=false;
+
+						Console.WriteLine(success);
 					} catch (Exception) {
-						lock(workLock) {
+						lock(wList) {
 							removeWorkers (worker);
 
 							informReplicas (job, (tracker) => {
@@ -394,15 +475,18 @@ namespace PADIMapNoReduce
 			currentJobs.Remove (job.Uuid);
 		}
 
-		public WorkStatus getSplitStatus(Guid jobId, int splitId) {
+		public SplitStatusMessage getSplitStatus(Guid jobId, int splitId) {
+			while (freezeW) {
+			}
+
 			string id = jobId + "#" + splitId;
 			if (splitsDone.Contains (id)) {
-				return WorkStatus.Done;
+				return new SplitStatusMessage(WorkStatus.Done);
 			}
 			if(instanceLoad.ContainsKey(id)) {
-				return instanceLoad [id].status;
+				return new SplitStatusMessage(instanceLoad [id]);
 			}
-			return WorkStatus.Inexistent;
+			return new SplitStatusMessage(WorkStatus.Inexistent);
 		}
 
 		private delegate IList<KeyValuePair<string, string>> MapFn(string line);
@@ -434,15 +518,9 @@ namespace PADIMapNoReduce
 				return;
 			}
 
-
             Console.WriteLine ("[Split]> "+split);
 
-			WorkInfo winfo = new WorkInfo();
-			winfo.started = DateTime.Now;
-			winfo.split = split;
-			winfo.remaining = split.upper - split.lower;
-			winfo.thread = Thread.CurrentThread;
-            winfo.status = WorkStatus.Getting;
+			WorkInfo winfo = new WorkInfo(split, Thread.CurrentThread);
 			instanceLoad.Add (split.ToString(), winfo);
 
 			MapFn map = buildMapperInstance(split);
@@ -561,7 +639,7 @@ namespace PADIMapNoReduce
                         str += "\t" + work.Key + " is mapping, " + work.Value.remaining + " keys remaining";
                         break;
                 }
-                str += "\n";
+                str += " "+work.Value.remaining+" \n";
             }
             str += "Current load: " + getLoad() + "\n";
             str += "=============\n";

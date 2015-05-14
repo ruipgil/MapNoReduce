@@ -68,7 +68,7 @@ namespace PADIMapNoReduce
 		/// <returns>The split status.</returns>
 		/// <param name="job">Job.</param>
 		/// <param name="split">Split.</param>
-		WorkStatus getSplitStatus(Guid job, int split);
+		SplitStatusMessage getSplitStatus(Guid job, int split);
 
 		/// <summary>
 		/// Shares the known workers.
@@ -113,5 +113,7 @@ namespace PADIMapNoReduce
 		/// Gets the status.
 		/// </summary>
 		void getStatus();
+
+		void cancelSplit(Guid job, int split);
     }
 }

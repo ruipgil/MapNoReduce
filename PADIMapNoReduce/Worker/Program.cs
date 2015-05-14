@@ -71,6 +71,15 @@ namespace PADIMapNoReduce
 			Thread t2 = new Thread(ts2);
 			t2.Start();
 
+			/*ThreadStart ts3 = new ThreadStart(()=>{
+				while(true) {
+					tracker.monitorSplits();
+					Thread.Sleep(2000);
+				}
+			});
+			Thread t3 = new Thread(ts3);
+			t3.Start();*/
+
             Console.Out.WriteLine("Press enter to close");
             Console.In.ReadLine();
 			t.Abort ();
