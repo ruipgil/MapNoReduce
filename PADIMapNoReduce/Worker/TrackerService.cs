@@ -138,7 +138,7 @@ namespace PADIMapNoReduce
 			toHeartbeat = toHeartbeat.Distinct ().ToList ();
 			toHeartbeat.Remove (ownAddress);
 
-			Console.WriteLine (" # Heartbeat ["+toHeartbeat.Count+"] "+string.Join (" ", toHeartbeat.ToArray()));
+			//Console.WriteLine (" # Heartbeat ["+toHeartbeat.Count+"] "+string.Join (" ", toHeartbeat.ToArray()));
 			if (toHeartbeat.Count < 1) {
 				return;
 			}
@@ -411,6 +411,7 @@ namespace PADIMapNoReduce
 						SplitStatusMessage pastStatus = new SplitStatusMessage(WorkStatus.Inexistent);
 
 						bool success = false;
+						bool aborted = false;
 						var wt = new ThreadStart(()=>{
 							try {
 								w.work(s);
@@ -431,7 +432,7 @@ namespace PADIMapNoReduce
 						});
 						var thr = new Thread(wt);
 
-						/*var timer = new System.Timers.Timer(2000);
+						var timer = new System.Timers.Timer(2000);
 						timer.Elapsed += (source, e)=>{
 							var status = w.getSplitStatus(job.Uuid, s.id);
 							if( ps ) {
@@ -441,24 +442,29 @@ namespace PADIMapNoReduce
 									w.cancelSplit(job.Uuid, s.id);
 									informReplicas(job, (t)=>getWorker(t).deassignSplit(job.Uuid, s.id));
 									timer.Enabled=false;
+									aborted = true;
 									thr.Abort();
 								}
 							} else {
 								ps = true;
 								pastStatus = status;
 							}
-						};*/
+						};
 
-						//timer.Enabled = true;
-						//thr.Start();
-						//thr.Join();
-						w.work (s);
+						timer.Enabled = true;
+						thr.Start();
+						thr.Join();
+
+						if( aborted ) {
+							Console.WriteLine("Aborted "+s);
+						}
+						/*w.work (s);
 
 						completedSplit (job.Uuid, s.id);
 						lock(wList) {
 							wList.Enqueue(worker);
-						}
-						//timer.Enabled=false;
+						}*/
+						timer.Enabled=false;
 
 						Console.WriteLine(success);
 					} catch (Exception) {
@@ -522,12 +528,14 @@ namespace PADIMapNoReduce
 			return null;
 		}
 
+		bool b_ = true;
+
 		public void work(Split split) {
             freezeW_.WaitOne();
 
 			if (instanceLoad.ContainsKey (split.ToString ())) {
 				Console.WriteLine ("[Split]Join "+split);
-				//instanceLoad[split.ToString()].thread.Join();
+				instanceLoad[split.ToString()].thread.Join();
 				return;
 			}
 
