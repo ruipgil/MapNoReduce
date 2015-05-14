@@ -9,7 +9,10 @@ namespace PADIMapNoReduce
 		public int remaining;
 		public WorkStatus status;
 		public DateTime started;
+		public bool cancel;
+
 		public WorkInfo(Split split, Thread current) {
+			cancel = false;
 			started = DateTime.Now;
 			this.split = split;
 			remaining = split.upper - split.lower;
