@@ -21,7 +21,6 @@ namespace PADIMapNoReduce
         bool hasKnownWorker = false;
 		string ownAddress;
 
-		List<string> fileContent;
         int lines;
 		string inputFile;
         string outputFolder;
@@ -117,7 +116,7 @@ namespace PADIMapNoReduce
                     string entryResult = "";
                     foreach (KeyValuePair<string, string> entry in result)
                     {
-                        entryResult += entry.Key + ":" + entry.Value + ",";
+                        entryResult += entry.Key + ":" + entry.Value;
                     }
                     file.WriteLine(entryResult);
                 }

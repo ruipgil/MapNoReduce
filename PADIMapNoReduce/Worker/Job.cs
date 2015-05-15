@@ -119,6 +119,7 @@ namespace PADIMapNoReduce
 			} else {
 				result = generateSplitsSplitBound ();
 			}
+            nSplits = result.Count;
 			return result.Where((elm, index) => !splitsCompleted.Contains (index) && !assignments.ContainsKey(index)).ToList();
 		}
 
@@ -180,7 +181,7 @@ namespace PADIMapNoReduce
 
 		public string debugDump() {
 			var str = "Job " + this + "\n" +
-			          "nSplits: " + nSplits + "\n" +
+			          "nSplits: " + nSplits + " ("+(splitsCompleted.Count/nSplits)+"% completed)\n" +
 			          "splitsCompleted: ";
 			foreach (var s in splitsCompleted) {
 				str += s + ", ";
