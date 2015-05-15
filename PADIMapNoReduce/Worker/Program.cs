@@ -50,7 +50,7 @@ namespace PADIMapNoReduce
 					workerMap.Remove ("-a");
                 }
             }
-            TrackerService tracker = new TrackerService(address, port);
+            Tracker tracker = new Tracker(address, port);
 			tracker.addKnownWorkers (workerMap);
 
 			ThreadStart ts = new ThreadStart(() => {
