@@ -75,7 +75,6 @@ namespace PADIMapNoReduce
 
 			if (winfo.cancel) {
 				instanceLoad.Remove (split.ToString());
-				Console.WriteLine ("Canceled "+split);
 				return false;
 			}
 
@@ -99,21 +98,26 @@ namespace PADIMapNoReduce
 				winfo.remaining--;
 			});
 
+			/*if( winfo.remaining < halfWayPoint && replicated ) {
+				string worker;
+				getWorker(worker).sendReplicatedData(results.ToList(), split, winfo.remaining);
+				split.Coordinator.informReplication(worker, split, winfo.remaining);
+			}*/
+
 			if (winfo.cancel) {
 				instanceLoad.Remove (split.ToString());
-				Console.WriteLine ("Canceled "+split);
 				return false;
 			}
 
 			freezeW_.WaitOne();
 			winfo.status = WorkStatus.Sending;
-			// data replication:
-			//  - start sending client and at the same time send copy to trackers
-			//  - when ends sending to client signals trackes to delete info.
+
 			try {
 				client.set(split.id, results.ToList());
+				freezeW_.WaitOne();
+				/*string worker;
+				getWorker(worker).dropReplicatedData(results.ToList(), split, winfo.remaining);*/
 			} catch(Exception e) {
-				Console.WriteLine ("Exception on sending data to client");
 				Console.WriteLine (e);
 			}
 

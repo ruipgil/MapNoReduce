@@ -25,52 +25,49 @@ namespace PADIMapNoReduce
 		public void heartbeat(string workerAddress) {
 			freezeC.WaitOne();
 
-			//Console.WriteLine (" # Received heartbeat of "+workerAddress);
 			if (!KnownWorkers.Contains (workerAddress)) {
 				KnownWorkers.Add (workerAddress);
 			}
 		}
 
 		public void startHeartbeating() {
-			freezeC.WaitOne();
+			Async.ExecInThread (() => {
+				while (true) {
+					freezeC.WaitOne();
 
-			List<string> toHeartbeat = new List<string> ();
-			foreach (var job in currentJobs.Values) {
-				toHeartbeat.Add (job.Coordinator);
-				toHeartbeat.AddRange (job.Trackers);
-			}
-			toHeartbeat = toHeartbeat.Distinct ().ToList ();
-			toHeartbeat.Remove (Address);
+					List<string> toHeartbeat = new List<string> ();
+					foreach (var job in currentJobs.Values) {
+						toHeartbeat.Add (job.Coordinator);
+						toHeartbeat.AddRange (job.Trackers);
+					}
+					toHeartbeat = toHeartbeat.Distinct ().ToList ();
+					toHeartbeat.Remove (Address);
 
-			//Console.WriteLine (" # Heartbeat ["+toHeartbeat.Count+"] "+string.Join (" ", toHeartbeat.ToArray()));
-			if (toHeartbeat.Count < 1) {
-				return;
-			}
+					if (toHeartbeat.Count < 1) {
+						return;
+					}
 
-			var workersToDealWith = new List<string> ();
-			Async.eachBlocking (toHeartbeat, (worker)=>{
-				try {
-					//Console.WriteLine("Heartbeating: " + worker);
-					getWorker(worker).heartbeat(Address);
-					//Console.WriteLine("Success: " + worker);
-				} catch(Exception) {
-					//Console.WriteLine ("# A worker is down: "+worker);
-					workersToDealWith.Add (worker);
+					var workersToDealWith = new List<string> ();
+					Async.eachBlocking (toHeartbeat, (worker)=>{
+						try {
+							getWorker(worker).heartbeat(Address);
+						} catch(Exception) {
+							workersToDealWith.Add (worker);
+						}
+					});
+
+					removeWorkers (workersToDealWith);
+
+					Thread.Sleep (Const.HEARTBEATING_INTERVAL_MS);
 				}
 			});
-			// different process
-			removeWorkers (workersToDealWith);
 		}
 
 		public void assignReplica(Job job) {
-			Console.WriteLine ("assigning replica");
 
 			var workers = getWorkersByLoad ();
 			workers.Remove (Address);
-			workers.ForEach (Console.WriteLine);
 			job.Trackers = workers.GetRange(0, Math.Min(1, workers.Count));
-
-			Console.WriteLine (": "+job.Trackers.First());
 
 			if (job.Trackers.Count > 0) {
 				Async.eachBlocking (job.Trackers.ToList (), (tracker) => {
@@ -82,7 +79,6 @@ namespace PADIMapNoReduce
 					}
 				});
 			}
-			Console.WriteLine ("finish replicating");
 		}
 
 		/// <summary>
@@ -117,7 +113,6 @@ namespace PADIMapNoReduce
 				}
 			}
 
-			Console.WriteLine ("ownership");
 			assignReplica (job);
 
 			Async.ExecInThread(() => startJob (job));
@@ -173,10 +168,7 @@ namespace PADIMapNoReduce
 			Job job = new Job (Address, clientAddress, inputSize, fileSize, splits, mapperName, code);
 			currentJobs.Add (job.Uuid, job);
 
-			Console.WriteLine ("assigning replica-submit");
 			assignReplica (job);
-
-			Console.WriteLine ("starting job");
 
 			Async.ExecInThread(() => startJob (job));
 		}
@@ -185,18 +177,13 @@ namespace PADIMapNoReduce
 			freezeC.WaitOne();
 			var workers = new List<Tuple<string, int>> ();
 			Async.eachBlocking (KnownWorkers.ToList (), (worker) => {
-				//Console.WriteLine(worker);
 				try {
 					workers.Add (new Tuple<string, int> (worker, getWorker (worker).getLoad ()));
-					//Console.WriteLine("?");
 				} catch(Exception) {
-					//Console.WriteLine("?!!");
 					removeWorkers(worker);
 				}
 			});
-			//Console.WriteLine ("_---"+workers.Count);
 			workers.Add (new Tuple<string, int>(Address, getLoad()));
-			//Console.WriteLine ("_---"+workers.Count);
 
 			return workers.OrderByDescending (x => x.Item2).Select(x=>x.Item1).ToList();
 		}
@@ -248,9 +235,7 @@ namespace PADIMapNoReduce
 						timer.Enabled = false;
 					} else if( ps ) {
 						var progress = 1-status.remaining/(double)pastStatus.remaining;
-						//Console.WriteLine(" ? "+pastStatus.remaining+" "+status.remaining+" "+progress+" "+split);
 						if( status.status == WorkStatus.Mapping && progress<=Const.SPLIT_HEALTHY_PROGRESS ) {
-							//Console.WriteLine(" ! "+split);
 							w.cancelSplit(job, split);
 							timer.Enabled=false;
 						}
@@ -386,14 +371,12 @@ namespace PADIMapNoReduce
 		{
 			Console.WriteLine("FREEZING COORDINATOR");
 			freezeC.Reset();
-			// TOFIX
 			RemotingServices.Marshal(this, "W", typeof(IRemoteTesting));
 		}
 
 		public void unfreezeCoordinator()
 		{
 			Console.WriteLine("UNFREEZING COORDINATOR");
-			// TOFIX
 			RemotingServices.Marshal(this, "W", typeof(Tracker));
 			freezeC.Set();
 		}

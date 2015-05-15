@@ -64,14 +64,20 @@ namespace PADIMapNoReduce
 			addKnownWorkers(workers.ToList());
 		}
 
-		// TODO it's stupid
 		public void startSharingKnownWorkers() {
-			freezeC.WaitOne();
+			Async.ExecInThread (() => {
+				while (true) {
+					freezeC.WaitOne ();
 
-			Async.eachBlocking (knownWorkers.ToList(), (worker)=> {
-				try {
-					getWorker(worker).shareKnownWorkers(ownAddress, knownWorkers);
-				} catch(Exception) {}
+					Async.eachBlocking (knownWorkers.ToList (), (worker) => {
+						try {
+							getWorker (worker).shareKnownWorkers (ownAddress, knownWorkers);
+						} catch (Exception) {
+						}
+					});
+
+					Thread.Sleep (Const.SHARE_WORKERS_INTERVAL_MS);
+				}
 			});
 		}
 

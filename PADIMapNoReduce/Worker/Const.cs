@@ -9,6 +9,8 @@ namespace PADIMapNoReduce
 		public const long SPLIT_FILE_SIZE = 1 * 1000 * 1000;
 		public const double SPLIT_HEALTHY_PROGRESS = 0.1;
 		public const int SPLIT_MONITORING_TIME_MS = 2000;
+		public const int SHARE_WORKERS_INTERVAL_MS = 2000;
+		public const int HEARTBEATING_INTERVAL_MS = 2000;
 	}
 }
 
