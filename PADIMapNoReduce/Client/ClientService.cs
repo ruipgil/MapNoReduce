@@ -49,7 +49,6 @@ namespace PADIMapNoReduce
 
         public void init(string workerEntryUrl)
         {
-            Console.Out.WriteLine("#init "+workerEntryUrl);
             knownWorkerUrl = workerEntryUrl;
         }
 
@@ -64,8 +63,6 @@ namespace PADIMapNoReduce
 			this.inputFile = inputFile;
 			var info = new FileInfo (inputFile);
 
-            Console.Out.WriteLine("#submiting");
-
 			int lineCount = 0;
 			using (var reader = File.OpenText(inputFile))
 			{
@@ -76,13 +73,7 @@ namespace PADIMapNoReduce
 			}
 			lines = lineCount;
 
-            Console.Out.WriteLine("\tlines:"+lines);
-            Console.WriteLine(knownWorker+", "+ownAddress + ", ");
-            Console.WriteLine(lines);
-            Console.WriteLine(info.Length);
-            Console.WriteLine(splits);
-            Console.WriteLine(code);
-            Console.WriteLine(mapperName);
+			Console.Out.WriteLine("#submit {0} {1} {2}Bytes {3} {4} {5}", ownAddress, lines, info.Length, splits, "%code%", mapperName);
 			knownWorker.submit(ownAddress, lines, info.Length, splits, code, mapperName);
 
 			doneCallback = callback;
@@ -90,7 +81,7 @@ namespace PADIMapNoReduce
 
         public List<string> get(int start, int end)
         {
-            Console.Out.WriteLine("#get "+start+" "+end);
+            Console.Out.WriteLine("#> "+start+"-"+end);
 
 			List<string> result = new List<string> ();
 			int lineCount = 0;
@@ -114,7 +105,7 @@ namespace PADIMapNoReduce
         public void set(int split, List<IList<KeyValuePair<string, string>>> results)
         {
             string outputFile = outputFolder + "/" + split + ".out";
-            Console.Out.WriteLine("#set "+split+" "+results.Count());
+			Console.Out.WriteLine("#< S"+split+" (length "+results.Count()+")");
             using (System.IO.StreamWriter file = new System.IO.StreamWriter(outputFile))
             {
                 foreach (List<KeyValuePair<string, string>> result in results)

@@ -20,10 +20,9 @@ namespace PADIMapNoReduce
             string workerAddress = "tcp://localhost:30001/W";
             client.init(workerAddress);
 
-            string IMapperPath = @"./Shared.dll";
+            string IMapperPath = @"./LibMapper.dll";
             byte[] code = System.IO.File.ReadAllBytes(IMapperPath);
-            string mapperName = "SampleMapper";
-            System.Console.WriteLine("Path on the way:" + IMapperPath);
+            string mapperName = "ParadiseCountMapper";
 			try {
 				client.submit(@"./pl10.txt", "./", 4, code, mapperName, ()=>{
 					Console.WriteLine("Process finished");
