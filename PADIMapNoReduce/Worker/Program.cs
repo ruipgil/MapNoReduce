@@ -52,8 +52,28 @@ namespace PADIMapNoReduce
             }
             Tracker tracker = new Tracker(address, port);
 			tracker.addKnownWorkers (workerMap);
-			tracker.startHeartbeating ();
-			tracker.startSharingKnownWorkers ();
+
+            ThreadStart ts = new ThreadStart(() =>
+            {
+                while (true)
+                {
+                    tracker.startHeartbeating();
+                    Thread.Sleep(Const.HEARTBEATING_INTERVAL_MS);
+                }
+            });
+            Thread t = new Thread(ts);
+            t.Start();
+
+            ThreadStart ts2 = new ThreadStart(() =>
+            {
+                while (true)
+                {
+                    tracker.startSharingKnownWorkers();
+                    Thread.Sleep(Const.SPLIT_MONITORING_TIME_MS);
+                }
+            });
+            Thread t2 = new Thread(ts2);
+            t2.Start();
 
             Console.Out.WriteLine("Press enter to close");
             Console.In.ReadLine();

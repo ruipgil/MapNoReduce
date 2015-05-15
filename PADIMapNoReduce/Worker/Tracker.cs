@@ -31,36 +31,30 @@ namespace PADIMapNoReduce
 		}
 
 		public void startHeartbeating() {
-			Async.ExecInThread (() => {
-				while (true) {
-					freezeC.WaitOne();
+			freezeC.WaitOne();
 
-					List<string> toHeartbeat = new List<string> ();
-					foreach (var job in currentJobs.Values) {
-						toHeartbeat.Add (job.Coordinator);
-						toHeartbeat.AddRange (job.Trackers);
-					}
-					toHeartbeat = toHeartbeat.Distinct ().ToList ();
-					toHeartbeat.Remove (Address);
+			List<string> toHeartbeat = new List<string> ();
+			foreach (var job in currentJobs.Values) {
+				toHeartbeat.Add (job.Coordinator);
+				toHeartbeat.AddRange (job.Trackers);
+			}
+			toHeartbeat = toHeartbeat.Distinct ().ToList ();
+			toHeartbeat.Remove (Address);
 
-					if (toHeartbeat.Count < 1) {
-						return;
-					}
+			if (toHeartbeat.Count < 1) {
+				return;
+			}
 
-					var workersToDealWith = new List<string> ();
-					Async.eachBlocking (toHeartbeat, (worker)=>{
-						try {
-							getWorker(worker).heartbeat(Address);
-						} catch(Exception) {
-							workersToDealWith.Add (worker);
-						}
-					});
-
-					removeWorkers (workersToDealWith);
-
-					Thread.Sleep (Const.HEARTBEATING_INTERVAL_MS);
+			var workersToDealWith = new List<string> ();
+			Async.eachBlocking (toHeartbeat, (worker)=>{
+				try {
+					getWorker(worker).heartbeat(Address);
+				} catch(Exception) {
+					workersToDealWith.Add (worker);
 				}
 			});
+
+			removeWorkers (workersToDealWith);
 		}
 
 		public void assignReplica(Job job) {
