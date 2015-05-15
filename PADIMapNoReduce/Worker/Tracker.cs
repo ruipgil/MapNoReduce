@@ -112,6 +112,8 @@ namespace PADIMapNoReduce
 					if (status.status == WorkStatus.Done) {
 						job.splitCompleted (assignment.Key);
 					}
+				} else {
+					startMonitorSplit (assignment.Value, job.Uuid, assignment.Key);
 				}
 			}
 
@@ -231,7 +233,7 @@ namespace PADIMapNoReduce
 			}
 		}
 
-		public Action startMonitorSplit(string workerAddress, Split split) {
+		public Action startMonitorSplit(string workerAddress, Guid job, int split) {
 			bool ps = false;
 			SplitStatusMessage pastStatus = new SplitStatusMessage(WorkStatus.Inexistent);
 
@@ -239,7 +241,7 @@ namespace PADIMapNoReduce
 			timer.Elapsed += (source, e)=>{
 				var w = getWorker(workerAddress);
 				// TODO try/catch
-				var status = w.getSplitStatus(split.jobUuid, split.id);
+				var status = w.getSplitStatus(job, split);
 				if( !(status.status == WorkStatus.Mapping || status.status == WorkStatus.Getting) ) {
 					timer.Enabled = false;
 				} else if( ps ) {
@@ -247,7 +249,7 @@ namespace PADIMapNoReduce
 					//Console.WriteLine(" ? "+pastStatus.remaining+" "+status.remaining+" "+progress+" "+split);
 					if( status.status == WorkStatus.Mapping && progress<=Const.SPLIT_HEALTHY_PROGRESS ) {
 						//Console.WriteLine(" ! "+split);
-						w.cancelSplit(split.jobUuid, split.id);
+						w.cancelSplit(job, split);
 						timer.Enabled=false;
 					}
 				} else {
@@ -300,7 +302,7 @@ namespace PADIMapNoReduce
 							getWorker (tracker).assignSplit (job.Uuid, s.id, worker);
 						});
 
-						var stopMonitoring = startMonitorSplit(worker, s);
+						var stopMonitoring = startMonitorSplit(worker, job.Uuid, s.id);
 
 						var untilTheEnd = w.work(s);
 						stopMonitoring();
