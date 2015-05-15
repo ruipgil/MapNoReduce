@@ -239,22 +239,28 @@ namespace PADIMapNoReduce
 
 			var timer = new System.Timers.Timer(Const.SPLIT_MONITORING_TIME_MS);
 			timer.Elapsed += (source, e)=>{
-				var w = getWorker(workerAddress);
-				// TODO try/catch
-				var status = w.getSplitStatus(job, split);
-				if( !(status.status == WorkStatus.Mapping || status.status == WorkStatus.Getting) ) {
-					timer.Enabled = false;
-				} else if( ps ) {
-					var progress = 1-status.remaining/(double)pastStatus.remaining;
-					//Console.WriteLine(" ? "+pastStatus.remaining+" "+status.remaining+" "+progress+" "+split);
-					if( status.status == WorkStatus.Mapping && progress<=Const.SPLIT_HEALTHY_PROGRESS ) {
-						//Console.WriteLine(" ! "+split);
-						w.cancelSplit(job, split);
-						timer.Enabled=false;
+				freezeC.WaitOne();
+				try {
+					var w = getWorker(workerAddress);
+
+					var status = w.getSplitStatus(job, split);
+					if( !(status.status == WorkStatus.Mapping || status.status == WorkStatus.Getting) ) {
+						timer.Enabled = false;
+					} else if( ps ) {
+						var progress = 1-status.remaining/(double)pastStatus.remaining;
+						//Console.WriteLine(" ? "+pastStatus.remaining+" "+status.remaining+" "+progress+" "+split);
+						if( status.status == WorkStatus.Mapping && progress<=Const.SPLIT_HEALTHY_PROGRESS ) {
+							//Console.WriteLine(" ! "+split);
+							w.cancelSplit(job, split);
+							timer.Enabled=false;
+						}
+					} else {
+						ps = true;
+						pastStatus = status;
 					}
-				} else {
-					ps = true;
-					pastStatus = status;
+				} catch(Exception) {
+					removeWorkers(workerAddress);
+					timer.Enabled=false;
 				}
 			};
 			timer.Enabled = true;
