@@ -66,6 +66,7 @@ namespace PADIMapNoReduce
 		public void assignReplica(Job job) {
 
 			var workers = getWorkersByLoad ();
+			workers = workers.Distinct ().ToList ();
 			workers.Remove (Address);
 			job.Trackers = workers.GetRange(0, Math.Min(1, workers.Count));
 
@@ -270,6 +271,7 @@ namespace PADIMapNoReduce
 			do {
 				splits = job.generateSplits ();
 				var wList = new Queue<string>(getWorkersByLoad ().Except(blacklist));
+				blacklist.Clear();
 				var inParallels = Math.Min(wList.Count, splits.Count);
 
 				if(inParallels==0){
