@@ -15,7 +15,7 @@ namespace PADIMapNoReduce
 		/// Work the specified split.
 		/// </summary>
 		/// <param name="split">Split.</param>
-		void work(Split split);
+		bool work(Split split);
 
 		/// <summary>
 		/// Heartbeats a worker, with the address of another worker.

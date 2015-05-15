@@ -45,13 +45,13 @@ namespace PADIMapNoReduce
 			return new SplitStatusMessage(WorkStatus.Inexistent);
 		}
 
-		public void work(Split split) {
+		public bool work(Split split) {
 			freezeW_.WaitOne();
 
 			if (instanceLoad.ContainsKey (split.ToString ())) {
 				Console.WriteLine ("[Split]Join "+split);
 				instanceLoad[split.ToString()].thread.Join();
-				return;
+				return true;
 			}
 
 			Console.WriteLine ("[Split]> "+split);
@@ -64,7 +64,7 @@ namespace PADIMapNoReduce
 				map = buildMapperInstance(split);
 			} catch (Exception e) {
 				Console.WriteLine(e);
-				return;
+				return false;
 			}
 
 			var results = new ConcurrentQueue<IList<KeyValuePair<string, string>>> ();
@@ -76,7 +76,7 @@ namespace PADIMapNoReduce
 			if (winfo.cancel) {
 				instanceLoad.Remove (split.ToString());
 				Console.WriteLine ("Canceled "+split);
-				return;
+				return false;
 			}
 
 			winfo.status = WorkStatus.Mapping;
@@ -102,7 +102,7 @@ namespace PADIMapNoReduce
 			if (winfo.cancel) {
 				instanceLoad.Remove (split.ToString());
 				Console.WriteLine ("Canceled "+split);
-				return;
+				return false;
 			}
 
 			freezeW_.WaitOne();
@@ -133,6 +133,7 @@ namespace PADIMapNoReduce
 					removeWorkers(tracker);
 				}
 			});
+			return true;
 		}
 
 		private MapFn buildMapperInstance(Split split) {
