@@ -19,6 +19,7 @@ namespace PADIMapNoReduce
 		public WorkerKnowledge (int port) : this("tcp://localhost", port) {}
 		public WorkerKnowledge (string address, int port) {
 			ownAddress = address + ":" + port + "/W";
+			Console.WriteLine ("Worker created @ "+ownAddress);
 		}
 
 		public override object InitializeLifetimeService()

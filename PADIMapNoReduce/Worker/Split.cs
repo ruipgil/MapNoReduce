@@ -27,7 +27,11 @@ namespace PADIMapNoReduce
 		}
 
 		public override string ToString() {
-			return jobUuid.ToString ()+"#"+id;
+			return CreateID(jobUuid, id);
+		}
+
+		public static string CreateID(Guid id, int split) {
+			return id.ToString () + "#" + split;
 		}
 	}
 }

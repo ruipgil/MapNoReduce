@@ -15,15 +15,13 @@ namespace PADIMapNoReduce
 		ManualResetEvent freezeW_ = new ManualResetEvent(true);
 		int slow = 0;
 
-		const int N_PARALLEL_MAP_PER_JOB = 8;
-
 		public Worker (int port) : base(port) {}
 		public Worker (string address, int port) : base(address, port) {}
 
 		private delegate IList<KeyValuePair<string, string>> MapFn(string line);
 
 		public void cancelSplit(Guid job, int split) {
-			var id = job + "#" + split;
+			var id = Split.CreateID(job, split);
 			if (instanceLoad.ContainsKey (id)) {
 				Console.WriteLine ("[Split]X "+id);
 				instanceLoad[id].cancel = true;
@@ -31,13 +29,13 @@ namespace PADIMapNoReduce
 		}
 
 		public virtual int getLoad () {
-			return instanceLoad.Values.Sum(x=>x.remaining) / N_PARALLEL_MAP_PER_JOB;
+			return instanceLoad.Values.Sum(x=>x.remaining) / Const.N_PARALLEL_MAP_PER_JOB;
 		}
 
 		public SplitStatusMessage getSplitStatus(Guid jobId, int splitId) {
 			freezeW_.WaitOne ();
 
-			string id = jobId + "#" + splitId;
+			string id = Split.CreateID(jobId, splitId);
 			if (splitsDone.Contains (id)) {
 				return new SplitStatusMessage(WorkStatus.Done);
 			}
@@ -83,7 +81,7 @@ namespace PADIMapNoReduce
 
 			winfo.status = WorkStatus.Mapping;
 
-			Parallel.ForEach(lines, new ParallelOptions { MaxDegreeOfParallelism = Math.Min(N_PARALLEL_MAP_PER_JOB, winfo.remaining) }, (line, _)=>{
+			Parallel.ForEach(lines, new ParallelOptions { MaxDegreeOfParallelism = Math.Min(Const.N_PARALLEL_MAP_PER_JOB, winfo.remaining) }, (line, _)=>{
 				if (winfo.cancel) {
 					instanceLoad.Remove (split.ToString());
 					_.Stop();
@@ -99,7 +97,6 @@ namespace PADIMapNoReduce
 
 				results.Enqueue(map (line));
 				winfo.remaining--;
-				//Console.WriteLine(winfo.remaining);
 			});
 
 			if (winfo.cancel) {

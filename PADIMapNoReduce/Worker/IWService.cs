@@ -20,7 +20,7 @@ namespace PADIMapNoReduce
 		/// <summary>
 		/// Heartbeats a worker, with the address of another worker.
 		/// If the worker is unknown it will be added to the known worker list of this instance.
-		/// If the worker is known, then it works like a heartbeat should. The lease time should be renewed.
+		/// If the worker is known, then it works like a heartbeat should.
 		/// 
 		/// The address could be removed if we could get the IP of the resquest.
 		/// </summary>
@@ -40,7 +40,7 @@ namespace PADIMapNoReduce
 		/// <param name="job">Job.</param>
 		void completedJob(Guid job);
 
-        void completedJobs(HashSet<Guid> job);
+        //void completedJobs(HashSet<Guid> job);
 
 		/// <summary>
 		/// Announces the job to a tracker.
@@ -85,6 +85,11 @@ namespace PADIMapNoReduce
 		/// <returns>The load.</returns>
 		int getLoad();
 
+		/// <summary>
+		/// Signals the worker to cancel a split.
+		/// </summary>
+		/// <param name="job">Job.</param>
+		/// <param name="split">Split.</param>
 		void cancelSplit(Guid job, int split);
     }
 }

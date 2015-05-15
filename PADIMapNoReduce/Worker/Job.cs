@@ -113,9 +113,8 @@ namespace PADIMapNoReduce
 		/// </summary>
 		/// <returns>The splits.</returns>
 		public List<Split> generateSplits() {
-			var THRESHOLD = 5 * 1000 * 1000;
 			List<Split> result;
-			if (InputSizeBytes >= THRESHOLD) {
+			if (InputSizeBytes >= Const.FILE_SIZE_THRESHOLD_MB) {
 				result = generateSplitsSizeBound ();
 			} else {
 				result = generateSplitsSplitBound ();
@@ -155,7 +154,7 @@ namespace PADIMapNoReduce
 			var averagePerLine = size / (float)totalLines;
 			var predictedSize = lines * averagePerLine;
 
-			long maxTransferSize = 1 * 1000 * 1000;
+			long maxTransferSize = Const.SPLIT_FILE_SIZE;
 
 			var ns = Math.Ceiling(predictedSize/(double)maxTransferSize);
 			var t = lines / (int)ns;

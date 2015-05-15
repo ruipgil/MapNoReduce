@@ -56,6 +56,7 @@
     <Compile Include="Worker.cs" />
     <Compile Include="WorkerKnowledge.cs" />
     <Compile Include="Tracker.cs" />
+    <Compile Include="Const.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

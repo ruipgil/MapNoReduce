@@ -14,7 +14,6 @@ namespace PADIMapNoReduce
 		Dictionary<Guid, Job> currentJobs = new Dictionary<Guid, Job> ();
 		HashSet<Guid> jobsCompleted = new HashSet<Guid>();
 		ManualResetEvent freezeC = new ManualResetEvent(true);
-		const int TRACKER_OVERHEAD_VS_WORKER = 100;
 
 		public Tracker (int port) : base(port) {}
 		public Tracker (string address, int port) : base(address, port) {
@@ -121,7 +120,7 @@ namespace PADIMapNoReduce
 		public void completedSplit(Guid job, int split) {
 			freezeC.WaitOne();
 
-			var splitId = job + "#" + split;
+			var splitId = Split.CreateID(job, split);
 			Console.WriteLine ("[Split]C "+splitId);
 			if (currentJobs.ContainsKey (job)) {
 				currentJobs [job].splitCompleted (split);
@@ -137,13 +136,13 @@ namespace PADIMapNoReduce
 			jobsCompleted.Add(job);
 		}
 
-		public void completedJobs(HashSet<Guid> jobs)
+		/*public void completedJobs(HashSet<Guid> jobs)
 		{
 			foreach (var job in currentJobs.Keys.Intersect(jobs))
 			{
 				completedJob(job);
 			}
-		}
+		}*/
 
 		public void announceJob(Job job) {
 			freezeC.WaitOne();
@@ -349,7 +348,7 @@ namespace PADIMapNoReduce
 		}
 
 		public override int getLoad () {
-			return currentJobs.Values.Count * TRACKER_OVERHEAD_VS_WORKER + base.getLoad ();
+			return currentJobs.Values.Count * Const.TRACKER_OVERHEAD_VS_WORKER + base.getLoad ();
 		}
 
 		public override void addKnownWorkers(List<string> workers) {
