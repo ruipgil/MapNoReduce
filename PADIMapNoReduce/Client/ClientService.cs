@@ -9,6 +9,7 @@ using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Messaging;
 using System.Runtime.Remoting;
 using System.Collections;
+using System.Threading;
 
 namespace PADIMapNoReduce
 {
@@ -22,8 +23,12 @@ namespace PADIMapNoReduce
 		string ownAddress;
 
         int lines;
+		Dictionary<int, int> linesOffsets = new Dictionary<int, int>();
 		string inputFile;
         string outputFolder;
+
+		ManualResetEvent reading = new ManualResetEvent (true);
+		FileStream fileStream;
 
 		Action doneCallback;
 
@@ -53,6 +58,8 @@ namespace PADIMapNoReduce
 
 		public void submit(string inputFile, string outputFolder, int splits, byte[] code, string mapperName, Action callback) // incomplete
         {
+			reading.Reset ();
+
             if (!hasKnownWorker)
             {
                 knownWorker = (IWorkerService)Activator.GetObject(typeof(IWorkerService), knownWorkerUrl);
@@ -65,12 +72,20 @@ namespace PADIMapNoReduce
 			int lineCount = 0;
 			using (var reader = File.OpenText(inputFile))
 			{
-				while (reader.ReadLine() != null)
+				string line;
+				int offset = 0;
+				while ((line = reader.ReadLine ()) != null)
 				{
+					//Console.WriteLine ("LINE["+line+"]"+lineCount+" "+offset+" "+line.Length);
+					linesOffsets.Add (lineCount, offset);
+					offset += line.Length+1;
 					lineCount++;
 				}
+				linesOffsets.Add (lineCount, offset);
 			}
 			lines = lineCount;
+
+			reading.Set ();
 
 			Console.Out.WriteLine("#submit {0} {1} {2}Bytes {3} {4} {5}", ownAddress, lines, info.Length, splits, "%code%", mapperName);
 			knownWorker.submit(ownAddress, lines, info.Length, splits, code, mapperName);
@@ -80,23 +95,27 @@ namespace PADIMapNoReduce
 
         public List<string> get(int start, int end)
         {
+			reading.WaitOne ();
+
             Console.Out.WriteLine("#> "+start+"-"+end);
 
 			List<string> result = new List<string> ();
-			int lineCount = 0;
-			string line;
-			using (var reader = File.OpenText(inputFile))
-			{
-				while ((line=reader.ReadLine()) != null)
-				{
-					if (lineCount >= start) {
-						result.Add (line);
-					}
-					lineCount++;
-					if (end <= lineCount) {
-						break;
-					}
+
+			int length = linesOffsets[end]-linesOffsets[start]-1;
+			using (FileStream fsSource = File.Open(inputFile, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+				try {
+					var binReader = new BinaryReader(fsSource);
+					fsSource.Position = linesOffsets[start];
+
+					char[] rr = binReader.ReadChars(length);
+
+					string[] r = new string(rr).Split('\n');
+					result = new List<string> (r);
+
+				} catch(Exception e) {
+					Console.WriteLine (e);
 				}
+					
 			}
 			return result;
         }
